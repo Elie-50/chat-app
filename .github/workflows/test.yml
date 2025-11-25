@@ -43,7 +43,8 @@ jobs:
 
       - name: Wait for MongoDB to be ready
         run: |
-          until mongosh "mongodb://testuser:testpass@localhost:27017/admin" --quiet --eval "db.adminCommand('ping')"; do
+          until docker exec $(docker ps -q -f ancestor=mongo:7) \
+            mongosh --eval "db.adminCommand('ping')" > /dev/null 2>&1; do
             echo "Waiting for MongoDB..."
             sleep 2
           done
