@@ -1,0 +1,58 @@
+name: Run Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    environment: .env
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: testuser
+          MONGO_INITDB_ROOT_PASSWORD: testpass
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'" 
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    strategy:
+      matrix:
+        node-version: [22]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Wait for MongoDB to be ready
+        run: |
+          until mongosh --username testuser --password testpass --eval "db.adminCommand('ping')" > /dev/null 2>&1; do
+            echo "Waiting for MongoDB..."
+            sleep 2
+          done
+
+      - name: Run unit tests
+        run: npm run test
+
+      - name: Run e2e tests
+        env:
+          MONGO_URI_TEST: mongodb://testuser:testpass@localhost:27017/testdb?authSource=admin
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: npm run test:e2e
