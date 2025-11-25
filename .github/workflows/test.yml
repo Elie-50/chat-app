@@ -54,6 +54,6 @@ jobs:
 
       - name: Run e2e tests
         env:
-          MONGO_URI_TEST: mongodb://testuser:testpass@localhost:27017/testdb?authSource=admin
+          MONGO_URI_TEST: ${{ secrets.MONGO_URI_TEST }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: npm run test:e2e
