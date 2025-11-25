@@ -43,7 +43,7 @@ jobs:
 
       - name: Wait for MongoDB to be ready
         run: |
-          until mongosh --username testuser --password testpass --eval "db.adminCommand('ping')" > /dev/null 2>&1; do
+          until mongosh "mongodb://testuser:testpass@localhost:27017/admin" --quiet --eval "db.adminCommand('ping')"; do
             echo "Waiting for MongoDB..."
             sleep 2
           done
