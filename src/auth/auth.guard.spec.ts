@@ -1,7 +1,6 @@
-import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
-import { JwtService } from '@nestjs/jwt';
 import { AuthGuard, AuthenticatedRequest } from './auth.guard';
+import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 
 describe('AuthGuard', () => {
   let guard: AuthGuard;
@@ -11,53 +10,79 @@ describe('AuthGuard', () => {
     verifyAsync: jest.fn(),
   };
 
-  const mockExecutionContext = (
-    req: Partial<AuthenticatedRequest>,
-  ): ExecutionContext =>
-    ({
+  beforeEach(() => {
+    jest.resetAllMocks();
+    jwtService = mockJwtService as any;
+    guard = new AuthGuard(jwtService);
+  });
+
+  const mockExecutionContext = (headers: Record<string, string>) => {
+    const req = {
+      headers,
+    } as AuthenticatedRequest;
+
+    return {
       switchToHttp: () => ({
         getRequest: () => req,
       }),
-    }) as unknown as ExecutionContext;
-
-  beforeEach(async () => {
-    jest.clearAllMocks();
-
-    const module = await Test.createTestingModule({
-      providers: [AuthGuard, { provide: JwtService, useValue: mockJwtService }],
-    }).compile();
-
-    guard = module.get(AuthGuard);
-    jwtService = module.get(JwtService);
-  });
+    } as unknown as ExecutionContext;
+  };
 
   it('should be defined', () => {
     expect(guard).toBeDefined();
   });
 
-  describe('canActivate', () => {
-    it('should throw UnauthorizedException if no token exists', async () => {
-      const req = { cookies: {} };
-      const ctx = mockExecutionContext(req);
+  it('should return true for a valid token', async () => {
+    const mockPayload = { userId: 123 };
+    mockJwtService.verifyAsync.mockResolvedValueOnce(mockPayload);
 
-      await expect(guard.canActivate(ctx)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      expect(jwtService.verifyAsync).not.toHaveBeenCalled();
+    const context = mockExecutionContext({
+      authorization: 'Bearer valid-token',
     });
 
-    it('should throw UnauthorizedException if token verification fails', async () => {
-      const req = { cookies: { access_token: 'invalid.token' } };
-      const ctx = mockExecutionContext(req);
+    const result = await guard.canActivate(context);
 
-      mockJwtService.verifyAsync.mockRejectedValueOnce(new Error('Invalid'));
-
-      await expect(guard.canActivate(ctx)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      expect(jwtService.verifyAsync).toHaveBeenCalledWith('invalid.token', {
-        secret: process.env.JWT_SECRET,
-      });
+    expect(result).toBe(true);
+    const req = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    expect(req.user).toEqual(mockPayload);
+    expect(mockJwtService.verifyAsync).toHaveBeenCalledWith('valid-token', {
+      secret: process.env.JWT_SECRET!,
     });
+  });
+
+  it('should throw UnauthorizedException if no token is present', async () => {
+    const context = mockExecutionContext({});
+
+    await expect(guard.canActivate(context)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(mockJwtService.verifyAsync).not.toHaveBeenCalled();
+  });
+
+  it('should throw UnauthorizedException if token is invalid', async () => {
+    mockJwtService.verifyAsync.mockRejectedValueOnce(
+      new Error('Invalid token'),
+    );
+
+    const context = mockExecutionContext({
+      authorization: 'Bearer invalid-token',
+    });
+
+    await expect(guard.canActivate(context)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(mockJwtService.verifyAsync).toHaveBeenCalledWith('invalid-token', {
+      secret: process.env.JWT_SECRET!,
+    });
+  });
+
+  it('should return undefined if auth type is not Bearer', async () => {
+    const context = mockExecutionContext({
+      authorization: 'Basic sometoken',
+    });
+
+    await expect(guard.canActivate(context)).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 });

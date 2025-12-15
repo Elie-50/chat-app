@@ -1,13 +1,19 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './schemas/user.schema';
-import { Model } from 'mongoose';
-import { CreateUserDto } from './dto/create-user.dto';
+import { Model, Types } from 'mongoose';
 import { UpdateUserDto } from './dto/update-user.dto';
+
+export type SafeUserReturn = {
+  _id: Types.ObjectId;
+  username?: string;
+  email: string;
+};
 
 @Injectable()
 export class UsersService {
@@ -15,16 +21,19 @@ export class UsersService {
     @InjectModel(User.name) private readonly userModel: Model<User>,
   ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
-    return this.userModel.create(createUserDto);
+  async create(email: string): Promise<UserDocument | null> {
+    return this.userModel.create({ email });
   }
 
-  async findOneWithEmail(email: string): Promise<User | null> {
+  async findOneWithEmail(email: string): Promise<UserDocument | null> {
     const user = await this.userModel.findOne({ email: email }).exec();
     return user;
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+  async update(
+    id: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<SafeUserReturn> {
     const user = await this.userModel
       .findByIdAndUpdate({ _id: id }, updateUserDto, { new: true })
       .exec();
@@ -32,8 +41,8 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-
-    return user;
+    const { _id, username, email } = user;
+    return { _id, username, email };
   }
 
   async delete(id: string): Promise<User> {
@@ -49,7 +58,7 @@ export class UsersService {
   async findByEmailAndVerify(
     email: string,
     verificationCode: string,
-  ): Promise<UserDocument> {
+  ): Promise<SafeUserReturn> {
     const user = await this.userModel.findOne({ email, verificationCode });
 
     if (!user) {
@@ -63,26 +72,27 @@ export class UsersService {
 
     user.verificationCode = '';
     user.verificationDue = undefined;
-
     await user.save();
 
-    return user;
+    const { username, _id } = user;
+    return { username, email, _id };
   }
 
   async findOrCreate(email: string): Promise<User> {
-    const user = await this.findOneWithEmail(email);
+    let user: UserDocument | null = await this.findOneWithEmail(email);
 
     if (!user) {
-      const verificationDue = new Date(Date.now() + 2 * 3600 * 1000);
-      const verificationCode = this.generateRandomSixDigitNumber();
-      const create = await this.create({
-        email,
-        verificationCode,
-        verificationDue,
-      });
-
-      return create;
+      user = await this.create(email);
     }
+
+    if (!user) {
+      throw new InternalServerErrorException('Unexpected Error occured');
+    }
+
+    user.verificationCode = this.generateRandomSixDigitNumber();
+    user.verificationDue = new Date(Date.now() + 2 * 3600 * 1000);
+
+    await user.save();
 
     return user;
   }

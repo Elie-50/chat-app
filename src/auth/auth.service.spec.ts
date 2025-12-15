@@ -25,11 +25,6 @@ describe('AuthService', () => {
     signAsync: jest.fn(),
   };
 
-  const mockResponse = () =>
-    ({
-      cookie: jest.fn(),
-    }) as unknown as Response;
-
   const mockUser = {
     _id: 'user-id-123',
     email: 'test@example.com',
@@ -74,8 +69,6 @@ describe('AuthService', () => {
 
   describe('verify', () => {
     it('should verify user, sign token, set cookie, and return user', async () => {
-      const res = mockResponse();
-
       usersService.findByEmailAndVerify.mockResolvedValueOnce({
         ...mockUser,
         _id: { toString: () => 'user-id-123' },
@@ -83,7 +76,7 @@ describe('AuthService', () => {
 
       jwtService.signAsync.mockResolvedValueOnce('signed-token');
 
-      const result = await service.verify('test@example.com', '123456', res);
+      const result = await service.verify('test@example.com', '123456');
 
       expect(usersService.findByEmailAndVerify).toHaveBeenCalledWith(
         'test@example.com',
@@ -92,29 +85,20 @@ describe('AuthService', () => {
 
       expect(jwtService.signAsync).toHaveBeenCalledWith({ _id: 'user-id-123' });
 
-      expect(res.cookie).toHaveBeenCalledWith(
-        'access_token',
-        'signed-token',
-        expect.objectContaining({
-          httpOnly: true,
-          maxAge: expect.any(Number),
-        }),
-      );
-
-      expect(result).toEqual({
+      expect(result.user).toEqual({
         _id: { toString: expect.any(Function) },
         email: mockUser.email,
         verificationCode: mockUser.verificationCode,
         verificationDue: expect.any(Date),
       });
+
+      expect(result.accessToken).toEqual('signed-token');
     });
 
     it('should throw NotFoundException when user is not found', async () => {
-      const res = mockResponse();
-
       usersService.findByEmailAndVerify.mockResolvedValueOnce(null as any);
 
-      await expect(service.verify('a@b.com', '000000', res)).rejects.toThrow(
+      await expect(service.verify('a@b.com', '000000')).rejects.toThrow(
         NotFoundException,
       );
     });

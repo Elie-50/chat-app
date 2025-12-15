@@ -1,16 +1,7 @@
-import {
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Res,
-  Response,
-} from '@nestjs/common';
+import { Body, Controller, Post, Response } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import type { Response as ExpressResponse } from 'express';
 
-@Controller('auth')
+@Controller('api/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
@@ -20,17 +11,7 @@ export class AuthController {
   }
 
   @Post('verify')
-  verifyEmail(
-    @Body() body: { email: string; code: string },
-    @Res({ passthrough: true }) res: ExpressResponse,
-  ) {
-    return this.authService.verify(body.email, body.code, res);
-  }
-
-  @HttpCode(HttpStatus.OK)
-  @Post('logout')
-  logout(@Response() res: ExpressResponse) {
-    res.clearCookie('access_token');
-    res.send({ message: 'Logged out successfully' });
+  verifyEmail(@Body() body: { email: string; code: string }) {
+    return this.authService.verify(body.email, body.code);
   }
 }

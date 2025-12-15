@@ -1,5 +1,4 @@
 import {
-  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -33,7 +32,7 @@ export class AuthService {
     return { message: 'Email sent successfully' };
   }
 
-  async verify(email: string, code: string, @Inject('Response') res: Response) {
+  async verify(email: string, code: string) {
     const user = await this.userService.findByEmailAndVerify(email, code);
 
     if (!user) {
@@ -43,13 +42,6 @@ export class AuthService {
     const payload: JwtPayload = { _id: user._id.toString() };
     const accessToken = await this.jwtService.signAsync(payload);
 
-    res.cookie('access_token', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 3600 * 1000,
-      sameSite: 'lax',
-    });
-
-    return user;
+    return { user, accessToken };
   }
 }

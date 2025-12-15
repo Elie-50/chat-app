@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import type { Request } from 'express';
+import { Request } from 'express';
 import { JwtPayload } from './auth.service';
 
 const JWT_SECRET: string = process.env.JWT_SECRET!;
@@ -22,7 +22,7 @@ export class AuthGuard implements CanActivate {
     const request: AuthenticatedRequest = context
       .switchToHttp()
       .getRequest<AuthenticatedRequest>();
-    const token = this.extractTokenFromCookie(request);
+    const token = this.extractTokenFromHeader(request);
     if (!token) {
       throw new UnauthorizedException();
     }
@@ -38,11 +38,12 @@ export class AuthGuard implements CanActivate {
     return true;
   }
 
-  private extractTokenFromCookie(
+  private extractTokenFromHeader(
     request: AuthenticatedRequest,
   ): string | undefined {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const authToken: string | undefined = request.cookies['access_token'];
-    return authToken;
+    const authHeader = request.headers['authorization'];
+    if (!authHeader) return undefined;
+    const [type, token] = authHeader.split(' ');
+    return type === 'Bearer' ? token : undefined;
   }
 }
