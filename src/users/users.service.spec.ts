@@ -5,6 +5,7 @@ import { UsersService } from './users.service';
 import { User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { NotFoundException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 
 const userModelMock = {
   create: jest.fn(),
@@ -31,6 +32,13 @@ describe('UsersService', () => {
         {
           provide: getModelToken('User'),
           useValue: userModelMock,
+        },
+        {
+          provide: JwtService,
+          useValue: {
+            verifyAsync: jest.fn(),
+            signAsync: jest.fn(),
+          },
         },
       ],
     }).compile();
@@ -70,7 +78,7 @@ describe('UsersService', () => {
   });
 
   describe('update', () => {
-    it('should update a user', async () => {
+    it('should update a user and return the updated document', async () => {
       const id = new Types.ObjectId().toString();
       const updated = {
         _id: id,
@@ -86,30 +94,10 @@ describe('UsersService', () => {
       };
       const result = await service.update(id, updateUserDto);
 
-      const res = {
-        _id: id,
-        email: mockedUser.email,
-        username: 'username',
-      };
-
-      expect(result).toEqual(res);
+      expect(result).toEqual(updated);
       expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
         { _id: id },
         updateUserDto,
-        { new: true },
-      );
-    });
-
-    it('should throw NotFoundException when user is not found', async () => {
-      model.findByIdAndUpdate.mockReturnValueOnce({
-        exec: jest.fn().mockResolvedValueOnce(null),
-      } as any);
-
-      const id = new Types.ObjectId().toString();
-      await expect(service.update(id, {})).rejects.toThrow(NotFoundException);
-      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
-        { _id: id },
-        {},
         { new: true },
       );
     });

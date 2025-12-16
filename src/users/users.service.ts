@@ -6,14 +6,9 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './schemas/user.schema';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
+import { JwtPayload } from '../auth/auth.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-
-export type SafeUserReturn = {
-  _id: Types.ObjectId;
-  username?: string;
-  email: string;
-};
 
 @Injectable()
 export class UsersService {
@@ -25,24 +20,15 @@ export class UsersService {
     return this.userModel.create({ email });
   }
 
+  update(id: string, updateUserDto: UpdateUserDto) {
+    return this.userModel
+      .findByIdAndUpdate({ _id: id }, updateUserDto, { new: true })
+      .exec();
+  }
+
   async findOneWithEmail(email: string): Promise<UserDocument | null> {
     const user = await this.userModel.findOne({ email: email }).exec();
     return user;
-  }
-
-  async update(
-    id: string,
-    updateUserDto: UpdateUserDto,
-  ): Promise<SafeUserReturn> {
-    const user = await this.userModel
-      .findByIdAndUpdate({ _id: id }, updateUserDto, { new: true })
-      .exec();
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-    const { _id, username, email } = user;
-    return { _id, username, email };
   }
 
   async delete(id: string): Promise<User> {
@@ -58,7 +44,7 @@ export class UsersService {
   async findByEmailAndVerify(
     email: string,
     verificationCode: string,
-  ): Promise<SafeUserReturn> {
+  ): Promise<JwtPayload> {
     const user = await this.userModel.findOne({ email, verificationCode });
 
     if (!user) {
@@ -75,7 +61,7 @@ export class UsersService {
     await user.save();
 
     const { username, _id } = user;
-    return { username, email, _id };
+    return { username, email, _id: _id.toString() };
   }
 
   async findOrCreate(email: string): Promise<User> {
