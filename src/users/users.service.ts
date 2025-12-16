@@ -86,4 +86,51 @@ export class UsersService {
   private generateRandomSixDigitNumber(): string {
     return (Math.floor(Math.random() * 900000) + 100000).toString();
   }
+
+  async searchByUsername(
+    username: string,
+    page: number = 1,
+    size: number = 10,
+  ) {
+    if (!username) {
+      return {
+        data: [],
+        page,
+        size,
+        total: 0,
+        totalPages: 0,
+      };
+    }
+
+    const escaped = username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const filter = {
+      username: {
+        $regex: escaped,
+        $options: 'i',
+      },
+    };
+
+    const limit = Math.min(size, 50);
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.userModel
+        .find(filter)
+        .select('username')
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+
+      this.userModel.countDocuments(filter),
+    ]);
+
+    return {
+      data,
+      page,
+      size: limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
 }

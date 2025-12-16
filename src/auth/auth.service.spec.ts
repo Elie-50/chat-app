@@ -148,7 +148,13 @@ describe('AuthService', () => {
         'new-refresh-token',
         expect.any(Object),
       );
-      expect(result).toEqual({ accessToken: 'new-access-token' });
+      expect(result).toEqual({
+        accessToken: 'new-access-token',
+        user: {
+          _id: 'user-id-123',
+          email: 'test@example.com',
+        },
+      });
     });
 
     it('should throw UnauthorizedException if no cookie', async () => {

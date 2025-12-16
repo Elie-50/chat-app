@@ -100,7 +100,7 @@ export class AuthService {
 
       const { accessToken } = await this.generateTokens(cleanPayload, res);
 
-      return { accessToken };
+      return { accessToken, user: cleanPayload as JwtPayload };
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }

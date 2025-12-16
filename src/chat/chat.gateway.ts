@@ -27,7 +27,6 @@ export class ChatGateway implements OnGatewayConnection {
     console.log('New connection attempt', client.id);
 
     const token = (client.handshake as { auth: { token?: string } }).auth.token;
-    console.log('Token received:', token); // You should see this log if the connection is successful
 
     if (!token) {
       console.log('NO TOKEN');
@@ -43,11 +42,8 @@ export class ChatGateway implements OnGatewayConnection {
   ) {
     const user = socket.data.payload;
     if (!user) {
-      console.log('NO USER');
       return;
     }
-
-    console.log(`Message received from ${user.username}: ${data.message}`);
 
     // Broadcast the message to all connected clients
     this.server.emit('feed-message', {

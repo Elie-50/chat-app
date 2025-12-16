@@ -22,8 +22,6 @@ export class WsAuthGuard implements CanActivate {
     // Extract the token from the WebSocket handshake (auth object)
     const token = (client.handshake as { auth: { token?: string } }).auth.token;
 
-    console.log('Token received:', token);
-
     if (!token) {
       return false;
     }
