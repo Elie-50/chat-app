@@ -4,9 +4,9 @@ import { AuthController } from './auth.controller';
 import { EmailModule } from '../email/email.module';
 import { UsersModule } from '../users/users.module';
 @Module({
-  imports: [EmailModule, UsersModule],
-  providers: [AuthService],
-  controllers: [AuthController],
-  exports: [AuthService],
+	imports: [EmailModule, UsersModule],
+	providers: [AuthService],
+	controllers: [AuthController],
+	exports: [AuthService],
 })
 export class AuthModule {}

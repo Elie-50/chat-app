@@ -6,12 +6,12 @@ import { EmailModule } from '../email/email.module';
 import { UsersController } from './users.controller';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-    EmailModule,
-  ],
-  controllers: [UsersController],
-  providers: [UsersService],
-  exports: [UsersService],
+	imports: [
+		MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+		EmailModule,
+	],
+	controllers: [UsersController],
+	providers: [UsersService],
+	exports: [UsersService],
 })
 export class UsersModule {}

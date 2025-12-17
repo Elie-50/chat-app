@@ -12,42 +12,42 @@ import { ChatModule } from './chat/chat.module';
 import { FollowModule } from './follow/follow.module';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: '.env',
-    }),
-    MongooseModule.forRoot(process.env.MONGO_URI!),
-    MailerModule.forRoot({
-      transport: {
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT),
-        secure: false,
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      },
-      template: {
-        dir: path.join(__dirname, 'templates'),
-        adapter: new HandlebarsAdapter(),
-        options: {
-          strict: true,
-        },
-      },
-    }),
-    JwtModule.register({
-      global: true,
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '15m' },
-    }),
-    UsersModule,
-    AuthModule,
-    EmailModule,
-    ChatModule,
-    FollowModule,
-  ],
-  controllers: [],
-  providers: [],
+	imports: [
+		ConfigModule.forRoot({
+			isGlobal: true,
+			envFilePath: '.env',
+		}),
+		MongooseModule.forRoot(process.env.MONGO_URI!),
+		MailerModule.forRoot({
+			transport: {
+				host: process.env.SMTP_HOST,
+				port: Number(process.env.SMTP_PORT),
+				secure: false,
+				auth: {
+					user: process.env.SMTP_USER,
+					pass: process.env.SMTP_PASS,
+				},
+			},
+			template: {
+				dir: path.join(__dirname, 'templates'),
+				adapter: new HandlebarsAdapter(),
+				options: {
+					strict: true,
+				},
+			},
+		}),
+		JwtModule.register({
+			global: true,
+			secret: process.env.JWT_SECRET,
+			signOptions: { expiresIn: '15m' },
+		}),
+		UsersModule,
+		AuthModule,
+		EmailModule,
+		ChatModule,
+		FollowModule,
+	],
+	controllers: [],
+	providers: [],
 })
 export class AppModule {}
