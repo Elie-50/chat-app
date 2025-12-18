@@ -8,12 +8,14 @@ import { getModelToken } from '@nestjs/mongoose';
 import { User, UserDocument } from '../src/users/schemas/user.schema';
 import mongoose from 'mongoose';
 import cookieParser from 'cookie-parser';
+import { Follow, FollowDocument } from '../src/follow/schemas/follow.schema';
 
 jest.setTimeout(60000);
 
 describe('Users (e2e)', () => {
 	let app: INestApplication;
 	let userModel: mongoose.Model<UserDocument>;
+	let followModel: mongoose.Model<FollowDocument>;
 	const mockEmailService = {
 		sendVerificationCode: jest.fn().mockResolvedValue(true),
 	};
@@ -38,6 +40,10 @@ describe('Users (e2e)', () => {
 		userModel = moduleFixture.get<mongoose.Model<UserDocument>>(
 			getModelToken(User.name),
 		);
+
+		followModel = moduleFixture.get<mongoose.Model<FollowDocument>>(
+			getModelToken(Follow.name),
+		);
 	});
 
 	afterAll(async () => {
@@ -55,7 +61,7 @@ describe('Users (e2e)', () => {
 		const verificationCode = '111111';
 		const verificationDue = new Date(Date.now() + 2 * 3600 * 1000);
 		const username = 'xxx';
-		await userModel.create({
+		const user = await userModel.create({
 			email,
 			username,
 			verificationCode,
@@ -66,7 +72,7 @@ describe('Users (e2e)', () => {
 			.post('/api/auth/verify')
 			.send({ email, code: verificationCode });
 
-		return { accessToken: res.body.accessToken };
+		return { accessToken: res.body.accessToken, user };
 	};
 
 	describe('/api/users/search (GET)', () => {
@@ -147,12 +153,60 @@ describe('Users (e2e)', () => {
 				.set('Authorization', `Bearer ${accessToken}`)
 				.expect(HttpStatus.OK);
 
-			console.log(res.body.data);
 			expect(res.body.page).toBe(2);
 			expect(res.body.size).toBe(5);
 			expect(res.body.total).toBe(15);
 			expect(res.body.totalPages).toBe(3);
 			expect(res.body.data.length).toBe(5);
+		});
+
+		it('should return isFollowing=true when current user follows the found user', async () => {
+			// Create searchable users
+			const alice = await userModel.create({
+				email: 'alice@example.com',
+				username: 'alice',
+				verificationCode: '111111',
+				verificationDue: new Date(Date.now() + 3600 * 1000),
+			});
+
+			await userModel.create({
+				email: 'alen@example.com',
+				username: 'alen',
+				verificationCode: '111111',
+				verificationDue: new Date(Date.now() + 3600 * 1000),
+			});
+
+			// Create and authenticate current user
+			const { accessToken, user: currentUser } = await getToken();
+
+			// Current user follows Alice, not Alen
+			await followModel.create({
+				follower: currentUser._id,
+				following: alice._id,
+			});
+
+			const res = await request(app.getHttpServer())
+				.get('/api/users/search')
+				.query({ username: 'a' })
+				.set('Authorization', `Bearer ${accessToken}`)
+				.expect(HttpStatus.OK);
+
+			expect(res.body.data.length).toBeGreaterThan(0);
+
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+			const aliceResult = res.body.data.find(
+				(u: any) => u.username === 'alice',
+			);
+
+			expect(aliceResult).toBeDefined();
+			expect(aliceResult._id).toBeDefined();
+			expect(aliceResult.isFollowing).toBe(true);
+
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+			const alenResult = res.body.data.find((u: any) => u.username === 'alen');
+
+			expect(alenResult).toBeDefined();
+			expect(alenResult.isFollowing).toBe(false);
 		});
 	});
 });

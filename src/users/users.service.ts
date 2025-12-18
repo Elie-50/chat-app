@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './schemas/user.schema';
-import { FilterQuery, Model } from 'mongoose';
+import { FilterQuery, Model, Types } from 'mongoose';
 import { JwtPayload } from '../auth/auth.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -105,26 +105,57 @@ export class UsersService {
 
 		const escaped = username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-		const filter: FilterQuery<UserDocument> = {
-			username: {
-				$regex: escaped,
-				$options: 'i',
-			},
-			_id: { $ne: currentUserId },
+		const matchStage: FilterQuery<UserDocument> = {
+			username: { $regex: escaped, $options: 'i' },
+			_id: { $ne: new Types.ObjectId(currentUserId) },
 		};
 
 		const limit = Math.min(size, 50);
 		const skip = (page - 1) * limit;
 
 		const [data, total] = await Promise.all([
-			this.userModel
-				.find(filter)
-				.select('username')
-				.skip(skip)
-				.limit(limit)
-				.lean(),
+			this.userModel.aggregate([
+				{ $match: matchStage },
 
-			this.userModel.countDocuments(filter),
+				{
+					$lookup: {
+						from: 'follows',
+						let: { userId: '$_id' },
+						pipeline: [
+							{
+								$match: {
+									$expr: {
+										$and: [
+											{ $eq: ['$follower', new Types.ObjectId(currentUserId)] },
+											{ $eq: ['$following', '$$userId'] },
+										],
+									},
+								},
+							},
+							{ $limit: 1 },
+						],
+						as: 'followRelation',
+					},
+				},
+
+				{
+					$addFields: {
+						isFollowing: { $gt: [{ $size: '$followRelation' }, 0] },
+					},
+				},
+
+				{
+					$project: {
+						username: 1,
+						isFollowing: 1,
+					},
+				},
+
+				{ $skip: skip },
+				{ $limit: limit },
+			]),
+
+			this.userModel.countDocuments(matchStage),
 		]);
 
 		return {
