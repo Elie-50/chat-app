@@ -1,12 +1,12 @@
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { type AuthenticatedRequest, AuthGuard } from '../auth/auth.guard';
 
+@UseGuards(AuthGuard)
 @Controller('api/users')
 export class UsersController {
 	constructor(private readonly usersService: UsersService) {}
 
-	@UseGuards(AuthGuard)
 	@Get('search')
 	async searchUsers(
 		@Query('username') username: string,
@@ -20,5 +20,10 @@ export class UsersController {
 			Number(size) || 10,
 			req.user!._id,
 		);
+	}
+
+	@Get(':userId')
+	findOne(@Param('userId') userId: string) {
+		return this.usersService.findOne(userId);
 	}
 }

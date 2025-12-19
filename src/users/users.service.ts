@@ -166,4 +166,18 @@ export class UsersService {
 			totalPages: Math.ceil(total / limit),
 		};
 	}
+
+	async findOne(userId: string) {
+		const userObjId = new Types.ObjectId(userId);
+		const user = await this.userModel.findById(userObjId);
+
+		if (!user) {
+			throw new NotFoundException('User not found');
+		}
+
+		return {
+			_id: user._id,
+			username: user.username,
+		};
+	}
 }

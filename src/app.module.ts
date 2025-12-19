@@ -10,9 +10,18 @@ import { EmailModule } from './email/email.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ChatModule } from './chat/chat.module';
 import { FollowModule } from './follow/follow.module';
+import { PrivateChatModule } from './private-chat/private-chat.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
 
 @Module({
 	imports: [
+		ServeStaticModule.forRoot({
+			rootPath: path.join(__dirname, '..', 'client'),
+			exclude: ['/api/{*test}'],
+			serveStaticOptions: {
+				fallthrough: true,
+			},
+		}),
 		ConfigModule.forRoot({
 			isGlobal: true,
 			envFilePath: '.env',
@@ -46,6 +55,7 @@ import { FollowModule } from './follow/follow.module';
 		EmailModule,
 		ChatModule,
 		FollowModule,
+		PrivateChatModule,
 	],
 	controllers: [],
 	providers: [],

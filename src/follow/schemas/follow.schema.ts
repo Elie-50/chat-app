@@ -14,5 +14,5 @@ export class Follow {
 
 export const FollowSchema = SchemaFactory.createForClass(Follow);
 
-// 🔒 Prevent duplicate follows
+// Prevent duplicate follows
 FollowSchema.index({ follower: 1, following: 1 }, { unique: true });

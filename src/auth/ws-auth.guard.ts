@@ -23,6 +23,7 @@ export class WsAuthGuard implements CanActivate {
 		const token = (client.handshake as { auth: { token?: string } }).auth.token;
 
 		if (!token) {
+			console.log('NO TOKEN');
 			return false;
 		}
 
