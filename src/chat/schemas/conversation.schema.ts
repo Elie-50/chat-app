@@ -10,6 +10,9 @@ export class Conversation {
 
 	@Prop({ default: 'dm' })
 	type: string;
+
+	@Prop({ type: Types.ObjectId, ref: 'User' })
+	admin?: Types.ObjectId;
 }
 
 export const ConversationSchema = SchemaFactory.createForClass(Conversation);

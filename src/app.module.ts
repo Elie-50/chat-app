@@ -12,6 +12,7 @@ import { ChatModule } from './chat/chat.module';
 import { FollowModule } from './follow/follow.module';
 import { PrivateChatModule } from './private-chat/private-chat.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { GroupChatModule } from './group-chat/group-chat.module';
 
 @Module({
 	imports: [
@@ -56,6 +57,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 		ChatModule,
 		FollowModule,
 		PrivateChatModule,
+		GroupChatModule,
 	],
 	controllers: [],
 	providers: [],
