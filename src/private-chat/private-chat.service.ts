@@ -7,7 +7,7 @@ import {
 import { CreatePrivateMessageDto } from './dto/create-private-chat.dto';
 import { UpdatePrivateMessageDto } from './dto/update-private-chat.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Conversation } from '../chat/schemas/conversation.schema';
+import { Conversation } from '../conversations/schemas/conversation.schema';
 import { Model, Types } from 'mongoose';
 import { PrivateMessage } from './schemas/private-message.schema';
 import { User } from '../users/schemas/user.schema';

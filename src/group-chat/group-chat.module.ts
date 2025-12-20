@@ -6,7 +6,7 @@ import { User, UserSchema } from '../users/schemas/user.schema';
 import {
 	Conversation,
 	ConversationSchema,
-} from '../chat/schemas/conversation.schema';
+} from '../conversations/schemas/conversation.schema';
 import {
 	GroupMessage,
 	GroupMessageSchema,

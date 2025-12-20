@@ -5,7 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import {
 	Conversation,
 	ConversationSchema,
-} from '../chat/schemas/conversation.schema';
+} from '../conversations/schemas/conversation.schema';
 import {
 	PrivateMessage,
 	PrivateMessageSchema,

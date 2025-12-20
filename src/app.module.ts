@@ -8,11 +8,11 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { EmailModule } from './email/email.module';
 import { JwtModule } from '@nestjs/jwt';
-import { ChatModule } from './chat/chat.module';
 import { FollowModule } from './follow/follow.module';
 import { PrivateChatModule } from './private-chat/private-chat.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { GroupChatModule } from './group-chat/group-chat.module';
+import { ConversationsModule } from './conversations/conversations.module';
 
 @Module({
 	imports: [
@@ -54,10 +54,10 @@ import { GroupChatModule } from './group-chat/group-chat.module';
 		UsersModule,
 		AuthModule,
 		EmailModule,
-		ChatModule,
 		FollowModule,
 		PrivateChatModule,
 		GroupChatModule,
+		ConversationsModule,
 	],
 	controllers: [],
 	providers: [],

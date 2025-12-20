@@ -10,7 +10,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { User } from '../users/schemas/user.schema';
 import { Model, Types } from 'mongoose';
 import { GroupMessage } from './schemas/group-message.schema';
-import { Conversation } from '../chat/schemas/conversation.schema';
+import { Conversation } from '../conversations/schemas/conversation.schema';
 
 @Injectable()
 export class GroupChatService {
