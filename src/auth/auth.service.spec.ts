@@ -20,6 +20,7 @@ describe('AuthService', () => {
 		findOrCreate: jest.fn(),
 		findByEmailAndVerify: jest.fn(),
 		update: jest.fn(),
+		findOne: jest.fn(),
 	};
 
 	const mockEmailService = {
@@ -126,6 +127,8 @@ describe('AuthService', () => {
 				cookies: { refresh_token: 'old-refresh' },
 			} as unknown as Request;
 			const res = { cookie: jest.fn() } as unknown as Response;
+
+			usersService.findOne.mockReturnValue(mockUser as any);
 
 			jwtService.verifyAsync.mockResolvedValueOnce({
 				_id: 'user-id-123',

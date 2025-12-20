@@ -98,6 +98,12 @@ export class AuthService {
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			const { iat, exp, ...cleanPayload } = payload;
 
+			const user = await this.userService.findOne(payload._id);
+
+			if (!user) {
+				throw new UnauthorizedException('Account does not exist');
+			}
+
 			const { accessToken } = await this.generateTokens(cleanPayload, res);
 
 			return { accessToken, user: cleanPayload as JwtPayload };
