@@ -93,6 +93,35 @@ describe('ConversationsService', () => {
 			expect(mockQuery.skip).toHaveBeenCalledWith(0);
 			expect(mockQuery.limit).toHaveBeenCalledWith(10);
 		});
+
+		it('should limit at 50', async () => {
+			const mockData = [{ _id: '1' }, { _id: '2' }];
+
+			const mockQuery = {
+				sort: jest.fn().mockReturnThis(),
+				skip: jest.fn().mockReturnThis(),
+				limit: jest.fn().mockReturnThis(),
+				exec: jest.fn().mockResolvedValue(mockData),
+			};
+
+			conversationModel.find.mockReturnValue(mockQuery as any);
+			conversationModel.countDocuments.mockResolvedValue(2);
+
+			const result = await service.findAll(mockUserId, 1, 100);
+
+			expect(result.data).toEqual(mockData);
+			expect(result.total).toBe(2);
+			expect(result.page).toBe(1);
+			expect(result.size).toBe(50);
+			expect(result.totalPages).toBe(1);
+
+			expect(conversationModel.find).toHaveBeenCalledWith({
+				participants: new Types.ObjectId(mockUserId),
+			});
+			expect(mockQuery.sort).toHaveBeenCalledWith({ updatedAt: -1 });
+			expect(mockQuery.skip).toHaveBeenCalledWith(0);
+			expect(mockQuery.limit).toHaveBeenCalledWith(50);
+		});
 	});
 
 	describe('findOne', () => {

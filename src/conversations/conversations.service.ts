@@ -25,6 +25,7 @@ export class ConversationsService {
 
 	async findAll(userId: string, page: number = 1, size: number = 20) {
 		const skip = (page - 1) * size;
+		const limit = Math.min(size, 50);
 		const userObjId = new Types.ObjectId(userId);
 
 		const [data, total] = await Promise.all([
@@ -32,7 +33,7 @@ export class ConversationsService {
 				.find({ participants: userObjId })
 				.sort({ updatedAt: -1 })
 				.skip(skip)
-				.limit(size)
+				.limit(limit)
 				.exec(),
 
 			this.conversationModel.countDocuments({
@@ -44,8 +45,8 @@ export class ConversationsService {
 			data,
 			total,
 			page,
-			size,
-			totalPages: Math.ceil(total / size),
+			size: limit,
+			totalPages: Math.ceil(total / limit),
 		};
 	}
 
