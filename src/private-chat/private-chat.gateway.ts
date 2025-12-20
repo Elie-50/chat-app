@@ -51,7 +51,7 @@ export class PrivateChatGateway {
 			// Emit message to all participants in the conversation
 			this.server
 				.to(`conversation:${conversation._id.toString()}`)
-				.emit('receive:private-message', {
+				.emit('private-message:received', {
 					conversationId: conversation._id,
 					message,
 				});
@@ -118,7 +118,7 @@ export class PrivateChatGateway {
 
 			this.server
 				.to(`conversation:${conversation._id.toString()}`)
-				.emit('update:private-message', { message: updatedMessage });
+				.emit('private-message:updated', { message: updatedMessage });
 		} catch (error: unknown) {
 			const err = error as HttpException;
 			client.emit('error:private-message', { message: err.message });
@@ -141,7 +141,7 @@ export class PrivateChatGateway {
 
 			this.server
 				.to(`conversation:${conversation._id.toString()}`)
-				.emit('delete:private-message', { messageId: deletedMessage._id });
+				.emit('private-message:removed', { messageId: deletedMessage._id });
 		} catch (error: unknown) {
 			const err = error as HttpException;
 			client.emit('error:private-message', { message: err.message });

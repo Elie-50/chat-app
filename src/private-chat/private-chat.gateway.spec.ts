@@ -82,7 +82,7 @@ describe('PrivateChatGateway', () => {
 			expect(mockServer.to).toHaveBeenCalledWith(
 				`conversation:${conversationId.toString()}`,
 			);
-			expect(mockServer.emit).toHaveBeenCalledWith('receive:private-message', {
+			expect(mockServer.emit).toHaveBeenCalledWith('private-message:received', {
 				conversationId,
 				message,
 			});
@@ -172,7 +172,7 @@ describe('PrivateChatGateway', () => {
 			expect(mockServer.to).toHaveBeenCalledWith(
 				`conversation:${conversationId.toString()}`,
 			);
-			expect(mockServer.emit).toHaveBeenCalledWith('update:private-message', {
+			expect(mockServer.emit).toHaveBeenCalledWith('private-message:updated', {
 				message: updatedMessage,
 			});
 		});
@@ -214,7 +214,7 @@ describe('PrivateChatGateway', () => {
 			expect(mockServer.to).toHaveBeenCalledWith(
 				`conversation:${conversationId.toString()}`,
 			);
-			expect(mockServer.emit).toHaveBeenCalledWith('delete:private-message', {
+			expect(mockServer.emit).toHaveBeenCalledWith('private-message:removed', {
 				messageId: deletedMessage._id,
 			});
 		});
