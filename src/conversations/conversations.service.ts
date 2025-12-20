@@ -32,6 +32,7 @@ export class ConversationsService {
 			this.conversationModel
 				.find({ participants: userObjId })
 				.sort({ updatedAt: -1 })
+				.select('name admin')
 				.skip(skip)
 				.limit(limit)
 				.exec(),

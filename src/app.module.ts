@@ -14,6 +14,20 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { GroupChatModule } from './group-chat/group-chat.module';
 import { ConversationsModule } from './conversations/conversations.module';
 
+const getURI = () => {
+	const dbURI =
+		process.env.NODE_ENV !== 'test'
+			? process.env.MONGO_URI
+			: process.env.MONGO_TEST_URI;
+
+	if (!dbURI) {
+		console.error('No DB credentials found');
+		process.exit(1);
+	}
+
+	return dbURI;
+};
+
 @Module({
 	imports: [
 		ServeStaticModule.forRoot({
@@ -27,7 +41,7 @@ import { ConversationsModule } from './conversations/conversations.module';
 			isGlobal: true,
 			envFilePath: '.env',
 		}),
-		MongooseModule.forRoot(process.env.MONGO_URI!),
+		MongooseModule.forRoot(getURI()),
 		MailerModule.forRoot({
 			transport: {
 				host: process.env.SMTP_HOST,
