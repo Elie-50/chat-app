@@ -16,6 +16,8 @@ describe('ConversationsController', () => {
 		findAll: jest.fn(),
 		findOne: jest.fn(),
 		update: jest.fn(),
+		addMember: jest.fn(),
+		removeMember: jest.fn(),
 	};
 
 	const mockJwtService = {
@@ -116,6 +118,47 @@ describe('ConversationsController', () => {
 				mockConversationId,
 				mockUserId,
 				body.name,
+			);
+		});
+	});
+
+	describe('addMember', () => {
+		it('should call service.addMember with correct args', async () => {
+			const req: any = { user: { _id: mockUserId } };
+			const body = { conversationId: 'conversationId', memberId: 'memberId' };
+
+			service.addMember.mockResolvedValue({
+				_id: 'memberId',
+				username: 'username',
+			} as any);
+
+			const result = await controller.addMember(req, body);
+
+			expect(result).toEqual({
+				_id: 'memberId',
+				username: 'username',
+			});
+
+			expect(service.addMember).toHaveBeenCalledWith(
+				body.memberId,
+				mockUserId,
+				body.conversationId,
+			);
+		});
+	});
+
+	describe('removeMember', () => {
+		it('should call service.removeMember with correct args', async () => {
+			const req: any = { user: { _id: mockUserId } };
+			const conversationId = 'conversationId';
+			const memberId = 'memberId';
+
+			await controller.removeMember(req, conversationId, memberId);
+
+			expect(service.removeMember).toHaveBeenCalledWith(
+				memberId,
+				mockUserId,
+				conversationId,
 			);
 		});
 	});

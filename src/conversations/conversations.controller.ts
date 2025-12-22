@@ -10,6 +10,7 @@ import {
 	Query,
 	HttpCode,
 	HttpStatus,
+	Delete,
 } from '@nestjs/common';
 import { ConversationsService } from './conversations.service';
 import { type AuthenticatedRequest, AuthGuard } from '../auth/auth.guard';
@@ -49,5 +50,32 @@ export class ConversationsController {
 		@Body() body: { name: string },
 	) {
 		return this.conversationsService.update(id, req.user!._id, body.name);
+	}
+
+	@HttpCode(HttpStatus.CREATED)
+	@Post('members')
+	addMember(
+		@Req() req: AuthenticatedRequest,
+		@Body() body: { memberId: string; conversationId: string },
+	) {
+		return this.conversationsService.addMember(
+			body.memberId,
+			req.user!._id,
+			body.conversationId,
+		);
+	}
+
+	@HttpCode(HttpStatus.NO_CONTENT)
+	@Delete(':conversationId/members/:memberId')
+	removeMember(
+		@Req() req: AuthenticatedRequest,
+		@Param('conversationId') conversationId: string,
+		@Param('memberId') memberId: string,
+	) {
+		return this.conversationsService.removeMember(
+			memberId,
+			req.user!._id,
+			conversationId,
+		);
 	}
 }

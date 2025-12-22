@@ -214,4 +214,143 @@ describe('Conversations (e2e)', () => {
 			.get('/api/conversations')
 			.expect(HttpStatus.UNAUTHORIZED);
 	});
+
+	it('should add members to a conversation', async () => {
+		const convo = await conversationModel.create({
+			name: 'convo',
+			type: 'group',
+			admin: user1._id,
+			participants: [user1._id],
+		});
+
+		const data = {
+			conversationId: convo._id.toString(),
+			memberId: user2._id.toString(),
+		};
+
+		const res = await request(app.getHttpServer())
+			.post('/api/conversations/members')
+			.set('Authorization', `Bearer ${tokenUser1}`)
+			.send(data)
+			.expect(201);
+		expect(res.body.member).toBeDefined();
+
+		const inDb = await conversationModel.findById(convo._id);
+		expect(inDb?.participants).toContainEqual(user2._id);
+	});
+
+	it('should return 400 if trying to add a member who is already added', async () => {
+		const convo = await conversationModel.create({
+			name: 'convo',
+			type: 'group',
+			admin: user1._id,
+			participants: [user1._id, user2._id],
+		});
+
+		const data = {
+			conversationId: convo._id.toString(),
+			memberId: user2._id.toString(),
+		};
+
+		await request(app.getHttpServer())
+			.post('/api/conversations/members')
+			.set('Authorization', `Bearer ${tokenUser1}`)
+			.send(data)
+			.expect(400);
+	});
+
+	it('should return 403 if not admin', async () => {
+		const convo = await conversationModel.create({
+			name: 'convo',
+			type: 'group',
+			admin: user1._id,
+			participants: [user1._id],
+		});
+
+		const data = {
+			conversationId: convo._id.toString(),
+			memberId: user2._id.toString(),
+		};
+
+		await request(app.getHttpServer())
+			.post('/api/conversations/members')
+			.set('Authorization', `Bearer ${tokenUser2}`)
+			.send(data)
+			.expect(403);
+	});
+
+	it('should remove members from a conversation', async () => {
+		const convo = await conversationModel.create({
+			name: 'convo',
+			type: 'group',
+			admin: user1._id,
+			participants: [user1._id, user2._id],
+		});
+
+		await request(app.getHttpServer())
+			.delete(
+				`/api/conversations/${convo._id.toString()}/members/${user2._id.toString()}`,
+			)
+			.set('Authorization', `Bearer ${tokenUser1}`)
+			.expect(204);
+
+		const inDb = await conversationModel.findById(convo._id);
+		expect(inDb?.participants).not.toContainEqual(user2._id);
+	});
+
+	it('should return 400 if trying to remove a member who is not added', async () => {
+		const convo = await conversationModel.create({
+			name: 'convo',
+			type: 'group',
+			admin: user1._id,
+			participants: [user1._id],
+		});
+
+		await request(app.getHttpServer())
+			.delete(
+				`/api/conversations/${convo._id.toString()}/members/${user2._id.toString()}`,
+			)
+			.set('Authorization', `Bearer ${tokenUser1}`)
+			.expect(400);
+	});
+
+	it('should allow users to exit groups', async () => {
+		const convo = await conversationModel.create({
+			name: 'convo',
+			type: 'group',
+			admin: user1._id,
+			participants: [user1._id, user2._id],
+		});
+
+		await request(app.getHttpServer())
+			.delete(
+				`/api/conversations/${convo._id.toString()}/members/${user2._id.toString()}`,
+			)
+			.set('Authorization', `Bearer ${tokenUser2}`)
+			.expect(204);
+
+		const inDb = await conversationModel.findById(convo._id);
+		expect(inDb?.participants).not.toContainEqual(user2._id);
+	});
+
+	it('should return 403 if not admin attempting to remove member', async () => {
+		const user3 = await userModel.create({
+			username: 'user3',
+			email: 'user3@example.com',
+		});
+
+		const convo = await conversationModel.create({
+			name: 'convo',
+			type: 'group',
+			admin: user1._id,
+			participants: [user1._id, user2._id, user3._id],
+		});
+
+		await request(app.getHttpServer())
+			.delete(
+				`/api/conversations/${convo._id.toString()}/members/${user3._id.toString()}`,
+			)
+			.set('Authorization', `Bearer ${tokenUser2}`)
+			.expect(403);
+	});
 });
