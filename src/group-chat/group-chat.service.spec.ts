@@ -67,7 +67,7 @@ describe('GroupChatService', () => {
 		it('should create a group message successfully', async () => {
 			const currentUserId = 'user123';
 			const createGroupMessageDto = {
-				conversationId: 'conv123',
+				id: 'conv123',
 				content: 'Hello World!',
 			};
 			const mockConversation = { _id: 'conv123' };
@@ -81,7 +81,7 @@ describe('GroupChatService', () => {
 			const result = await service.create(currentUserId, createGroupMessageDto);
 
 			expect(mockConversationModel.findById).toHaveBeenCalledWith(
-				createGroupMessageDto.conversationId,
+				createGroupMessageDto.id,
 			);
 			expect(mockUserModel.findById).toHaveBeenCalledWith(currentUserId);
 			expect(mockGroupMessageModel.create).toHaveBeenCalledWith({
@@ -102,7 +102,7 @@ describe('GroupChatService', () => {
 		it('should throw NotFoundException if conversation is not found', async () => {
 			const currentUserId = 'user123';
 			const createGroupMessageDto = {
-				conversationId: 'invalidConvId',
+				id: 'invalidConvId',
 				content: 'Hello World!',
 			};
 
@@ -116,7 +116,7 @@ describe('GroupChatService', () => {
 		it('should throw NotFoundException if user is not found', async () => {
 			const currentUserId = 'user123';
 			const createGroupMessageDto = {
-				conversationId: 'conv123',
+				id: 'conv123',
 				content: 'Hello World!',
 			};
 			const mockConversation = { _id: 'conv123' };
@@ -752,6 +752,13 @@ describe('GroupChatService', () => {
 				save: jest.fn(),
 			};
 
+			const deleteResult = {
+				_id: mockMessage._id,
+				sender: 'senderUsername',
+				content: mockMessage.content,
+				modification: 'Deleted',
+			};
+
 			const mockConversation = {
 				_id: conversationId,
 				admin: currentUserId, // Current user is the admin
@@ -776,7 +783,7 @@ describe('GroupChatService', () => {
 			);
 			expect(mockMessage.modification).toBe('Deleted'); // Message modification should be set to 'Deleted'
 			expect(mockMessage.save).toHaveBeenCalled(); // Ensure the message was saved
-			expect(result.message).toBe(mockMessage); // Ensure the returned message is correct
+			expect(result.message).toStrictEqual(deleteResult); // Ensure the returned message is correct
 			expect(result.conversation).toBe(mockConversation); // Ensure the returned conversation is correct
 		});
 

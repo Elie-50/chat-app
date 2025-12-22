@@ -70,6 +70,7 @@ describe('ConversationsService', () => {
 
 			const mockQuery = {
 				sort: jest.fn().mockReturnThis(),
+				select: jest.fn().mockReturnThis(),
 				skip: jest.fn().mockReturnThis(),
 				limit: jest.fn().mockReturnThis(),
 				exec: jest.fn().mockResolvedValue(mockData),
@@ -100,6 +101,7 @@ describe('ConversationsService', () => {
 			const mockQuery = {
 				sort: jest.fn().mockReturnThis(),
 				skip: jest.fn().mockReturnThis(),
+				select: jest.fn().mockReturnThis(),
 				limit: jest.fn().mockReturnThis(),
 				exec: jest.fn().mockResolvedValue(mockData),
 			};

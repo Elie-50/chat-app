@@ -40,7 +40,7 @@ export class PrivateChatGateway {
 			const { conversation, message } = await this.privateChatService.create(
 				sender._id,
 				{
-					recipientId: data.recipientId,
+					id: data.id,
 					content: data.content,
 				},
 			);
@@ -126,7 +126,7 @@ export class PrivateChatGateway {
 	}
 
 	// Delete a message
-	@SubscribeMessage('delete:private-message')
+	@SubscribeMessage('remove:private-message')
 	@UseGuards(wsAuthGuard.WsAuthGuard)
 	async handleDeleteMessage(
 		@MessageBody() data: { messageId: string },

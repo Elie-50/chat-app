@@ -27,7 +27,7 @@ export class GroupChatService {
 		createGroupMessageDto: CreateGroupMessageDto,
 	) {
 		const conversation = await this.conversationModel.findById(
-			createGroupMessageDto.conversationId,
+			createGroupMessageDto.id,
 		);
 
 		if (!conversation) {
@@ -243,6 +243,12 @@ export class GroupChatService {
 		);
 		if (!conversation) throw new NotFoundException('Conversation not found');
 
+		const sender = await this.userModel.findById(message.sender);
+
+		if (!sender) {
+			throw new NotFoundException('sender not foun');
+		}
+
 		// Only sender can delete
 		if (
 			!message.sender.equals(currentUserObjId) &&
@@ -258,6 +264,13 @@ export class GroupChatService {
 		// await this.privateMessageModel.findByIdAndDelete(message._id);
 		message.modification = modification;
 		await message.save();
-		return { message, conversation };
+		const result = {
+			_id: message._id,
+			sender: sender.username,
+			content: message.content,
+			modification: message.modification,
+		};
+
+		return { message: result, conversation };
 	}
 }

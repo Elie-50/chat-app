@@ -67,13 +67,10 @@ describe('PrivateChatGateway', () => {
 
 			mockService.create.mockResolvedValueOnce({ conversation, message });
 
-			await gateway.handleSendMessage(
-				{ recipientId: 'abc', content: 'Hi' },
-				client,
-			);
+			await gateway.handleSendMessage({ id: 'abc', content: 'Hi' }, client);
 
 			expect(mockService.create).toHaveBeenCalledWith(client.data.payload._id, {
-				recipientId: 'abc',
+				id: 'abc',
 				content: 'Hi',
 			});
 			expect(client.join).toHaveBeenCalledWith(
@@ -93,10 +90,7 @@ describe('PrivateChatGateway', () => {
 			const error = new HttpException('Failed', 400);
 			mockService.create.mockRejectedValueOnce(error);
 
-			await gateway.handleSendMessage(
-				{ recipientId: 'abc', content: 'Hi' },
-				client,
-			);
+			await gateway.handleSendMessage({ id: 'abc', content: 'Hi' }, client);
 
 			expect(client.emit).toHaveBeenCalledWith('error:private-message', {
 				message: 'Failed',

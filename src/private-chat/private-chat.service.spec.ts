@@ -66,7 +66,7 @@ describe('PrivateChatService', () => {
 		it('should create a new conversation and message if conversation does not exist', async () => {
 			const senderId = new Types.ObjectId().toHexString();
 			const recipientId = new Types.ObjectId().toHexString();
-			const dto = { recipientId, content: 'Hello' };
+			const dto = { id: recipientId, content: 'Hello' };
 
 			mockUserModel.findById.mockResolvedValueOnce({ username: 'Sender' });
 			mockConversationModel.findOne.mockResolvedValueOnce(null);
@@ -105,7 +105,7 @@ describe('PrivateChatService', () => {
 		it('should throw NotFoundException if user not found', async () => {
 			const senderId = new Types.ObjectId().toHexString();
 			const recipientId = new Types.ObjectId().toHexString();
-			const dto = { recipientId, content: 'Hello' };
+			const dto = { id: recipientId, content: 'Hello' };
 
 			mockUserModel.findById.mockResolvedValueOnce(null);
 
@@ -199,6 +199,14 @@ describe('PrivateChatService', () => {
 				modification: '',
 				save: jest.fn().mockResolvedValue(true),
 			};
+
+			const deleteResult = {
+				_id: fakeMessage._id,
+				sender: 'Sender',
+				content: fakeMessage.content,
+				modification: 'Deleted',
+			};
+
 			const fakeConversation = { _id: fakeMessage.conversation };
 
 			mockPrivateMessageModel.findById.mockResolvedValueOnce(fakeMessage);
@@ -207,7 +215,7 @@ describe('PrivateChatService', () => {
 
 			const result = await service.remove(senderId, messageId);
 
-			expect(result.message).toEqual(fakeMessage);
+			expect(result.message).toStrictEqual(deleteResult);
 			expect(result.message.modification).toBe('Deleted');
 			expect(fakeMessage.save).toHaveBeenCalled();
 		});

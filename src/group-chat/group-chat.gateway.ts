@@ -41,7 +41,7 @@ export class GroupChatGateway {
 				createGroupMessageDto,
 			);
 
-			const conversationId = createGroupMessageDto.conversationId;
+			const conversationId = createGroupMessageDto.id;
 
 			await client.join(`conversation:${conversationId}`);
 			this.server
@@ -52,7 +52,7 @@ export class GroupChatGateway {
 				});
 		} catch (error: unknown) {
 			const err = error as HttpException;
-			client.emit('error:private-message', { message: err.message });
+			client.emit('error:group-message', { message: err.message });
 		}
 	}
 
@@ -74,6 +74,7 @@ export class GroupChatGateway {
 				page,
 				size,
 			);
+			await client.join(`conversation:${conversationId}`);
 
 			// Emit the messages for the specific conversation to the client
 			this.server
@@ -81,7 +82,7 @@ export class GroupChatGateway {
 				.emit('group-messages:found', result);
 		} catch (error: unknown) {
 			const err = error as HttpException;
-			client.emit('error:private-message', { message: err.message });
+			client.emit('error:group-message', { message: err.message });
 		}
 	}
 
@@ -94,25 +95,26 @@ export class GroupChatGateway {
 		if (!sender) return;
 
 		try {
-			const { message } = await this.groupChatService.update(
+			const { message, conversation } = await this.groupChatService.update(
 				sender._id,
-				updateGroupMessageDto.id,
+				updateGroupMessageDto.messageId,
 				updateGroupMessageDto,
 			);
 
-			const conversationId = updateGroupMessageDto.conversationId;
+			const conversationId = conversation._id.toString();
+			// await client.join(`conversation:${conversationId}`);
 			this.server
 				.to(`conversation:${conversationId}`)
 				.emit('group-message:updated', { message });
 		} catch (error: unknown) {
 			const err = error as HttpException;
-			client.emit('error:private-message', { message: err.message });
+			client.emit('error:group-message', { message: err.message });
 		}
 	}
 
 	@SubscribeMessage('remove:group-message')
 	async removeGroupMessage(
-		@MessageBody() messageId: string,
+		@MessageBody() data: { messageId: string },
 		@ConnectedSocket() client: wsAuthGuard.CustomSocket,
 	) {
 		const sender = client.data.payload;
@@ -121,15 +123,17 @@ export class GroupChatGateway {
 		try {
 			const { message, conversation } = await this.groupChatService.remove(
 				sender._id,
-				messageId,
+				data.messageId,
 			);
+
+			await client.join(`conversation:${conversation._id.toString()}`);
 
 			this.server
 				.to(`conversation:${conversation._id.toString()}`)
 				.emit('group-message:removed', { message });
 		} catch (error: unknown) {
 			const err = error as HttpException;
-			client.emit('error:private-message', { message: err.message });
+			client.emit('error:group-message', { message: err.message });
 		}
 	}
 
@@ -154,7 +158,7 @@ export class GroupChatGateway {
 				.emit('member:added', { memberId });
 		} catch (error: unknown) {
 			const err = error as HttpException;
-			client.emit('error:private-message', { message: err.message });
+			client.emit('error:group-message', { message: err.message });
 		}
 	}
 
@@ -179,7 +183,7 @@ export class GroupChatGateway {
 				.emit('member:removed', { memberId });
 		} catch (error: unknown) {
 			const err = error as HttpException;
-			client.emit('error:private-message', { message: err.message });
+			client.emit('error:group-message', { message: err.message });
 		}
 	}
 }

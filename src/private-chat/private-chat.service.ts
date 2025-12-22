@@ -25,7 +25,7 @@ export class PrivateChatService {
 
 	async create(senderId: string, dto: CreatePrivateMessageDto) {
 		const senderObjId = new Types.ObjectId(senderId);
-		const recipientObjId = new Types.ObjectId(dto.recipientId);
+		const recipientObjId = new Types.ObjectId(dto.id);
 
 		const sender = await this.userModel.findById(senderObjId);
 
@@ -130,7 +130,14 @@ export class PrivateChatService {
 		// await this.privateMessageModel.findByIdAndDelete(message._id);
 		message.modification = 'Deleted';
 		await message.save();
-		return { message, conversation };
+		const result = {
+			_id: message._id,
+			sender: sender.username,
+			content: message.content,
+			modification: message.modification,
+		};
+
+		return { message: result, conversation };
 	}
 
 	async findAll(senderId: string, recipientId: string, page = 1, size = 20) {

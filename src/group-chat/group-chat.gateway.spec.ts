@@ -4,6 +4,7 @@ import { GroupChatService } from './group-chat.service';
 import { HttpException } from '@nestjs/common';
 import { Server } from 'socket.io';
 import { CustomSocket } from '../auth/ws-auth.guard';
+import { Types } from 'mongoose';
 
 // Mock GroupChatService
 jest.mock('./group-chat.service');
@@ -57,7 +58,7 @@ describe('GroupChatGateway', () => {
 	describe('create()', () => {
 		it('should emit a message when creating a new group message', async () => {
 			const createGroupMessageDto = {
-				conversationId: 'conversationId',
+				id: 'conversationId',
 				content: 'Hello, World!',
 			};
 			const message = {
@@ -81,7 +82,7 @@ describe('GroupChatGateway', () => {
 
 		it('should handle errors correctly', async () => {
 			const createGroupMessageDto = {
-				conversationId: 'conversationId',
+				id: 'conversationId',
 				content: 'Hello, World!',
 			};
 
@@ -91,7 +92,7 @@ describe('GroupChatGateway', () => {
 
 			await gateway.create(createGroupMessageDto, client);
 
-			expect(client.emit).toHaveBeenCalledWith('error:private-message', {
+			expect(client.emit).toHaveBeenCalledWith('error:group-message', {
 				message: 'Error',
 			});
 		});
@@ -135,7 +136,7 @@ describe('GroupChatGateway', () => {
 
 			await gateway.findAllGroupChat(findAllDto, client);
 
-			expect(client.emit).toHaveBeenCalledWith('error:private-message', {
+			expect(client.emit).toHaveBeenCalledWith('error:group-message', {
 				message: 'Error',
 			});
 		});
@@ -144,8 +145,7 @@ describe('GroupChatGateway', () => {
 	describe('updateGroupMessage()', () => {
 		it('should emit the updated message', async () => {
 			const updateGroupMessageDto = {
-				id: 'messageId',
-				conversationId: 'conversationId',
+				messageId: 'messageId',
 				content: 'Updated content',
 			};
 			const message = {
@@ -154,11 +154,19 @@ describe('GroupChatGateway', () => {
 				sender: { username: 'senderName' },
 			};
 
-			groupChatService.update = jest.fn().mockResolvedValue({ message });
+			const conversationId = new Types.ObjectId();
+
+			const conversation = { _id: conversationId };
+
+			groupChatService.update = jest
+				.fn()
+				.mockResolvedValue({ message, conversation });
 
 			await gateway.updateGroupMessage(updateGroupMessageDto, client);
 
-			expect(server.to).toHaveBeenCalledWith('conversation:conversationId');
+			expect(server.to).toHaveBeenCalledWith(
+				`conversation:${conversationId.toString()}`,
+			);
 			expect(server.emit).toHaveBeenCalledWith('group-message:updated', {
 				message,
 			});
@@ -166,8 +174,8 @@ describe('GroupChatGateway', () => {
 
 		it('should handle errors correctly', async () => {
 			const updateGroupMessageDto = {
-				id: 'messageId',
-				conversationId: 'conversationId',
+				messageId: 'messageId',
+				id: 'conversationId',
 				content: 'Updated content',
 			};
 
@@ -177,7 +185,7 @@ describe('GroupChatGateway', () => {
 
 			await gateway.updateGroupMessage(updateGroupMessageDto, client);
 
-			expect(client.emit).toHaveBeenCalledWith('error:private-message', {
+			expect(client.emit).toHaveBeenCalledWith('error:group-message', {
 				message: 'Error',
 			});
 		});
@@ -193,7 +201,7 @@ describe('GroupChatGateway', () => {
 				.fn()
 				.mockResolvedValue({ message, conversation });
 
-			await gateway.removeGroupMessage(messageId, client);
+			await gateway.removeGroupMessage({ messageId }, client);
 
 			expect(server.to).toHaveBeenCalledWith('conversation:conversationId');
 			expect(server.emit).toHaveBeenCalledWith('group-message:removed', {
@@ -207,9 +215,9 @@ describe('GroupChatGateway', () => {
 				.fn()
 				.mockRejectedValue(new HttpException('Error', 400));
 
-			await gateway.removeGroupMessage(messageId, client);
+			await gateway.removeGroupMessage({ messageId }, client);
 
-			expect(client.emit).toHaveBeenCalledWith('error:private-message', {
+			expect(client.emit).toHaveBeenCalledWith('error:group-message', {
 				message: 'Error',
 			});
 		});
@@ -244,7 +252,7 @@ describe('GroupChatGateway', () => {
 
 			await gateway.addMember(addMemberDto, client);
 
-			expect(client.emit).toHaveBeenCalledWith('error:private-message', {
+			expect(client.emit).toHaveBeenCalledWith('error:group-message', {
 				message: 'Error',
 			});
 		});
@@ -279,7 +287,7 @@ describe('GroupChatGateway', () => {
 
 			await gateway.removeMember(removeMemberDto, client);
 
-			expect(client.emit).toHaveBeenCalledWith('error:private-message', {
+			expect(client.emit).toHaveBeenCalledWith('error:group-message', {
 				message: 'Error',
 			});
 		});
