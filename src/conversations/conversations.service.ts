@@ -64,6 +64,11 @@ export class ConversationsService {
 			throw new NotFoundException('Conversation not found');
 		}
 
+		await conversation.populate({
+			path: 'participants',
+			select: 'username',
+		});
+
 		return conversation;
 	}
 

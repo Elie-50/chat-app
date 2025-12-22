@@ -22,6 +22,7 @@ describe('ConversationsService', () => {
 		exec: jest.fn(),
 		countDocuments: jest.fn(),
 		findById: jest.fn(),
+		populate: jest.fn(),
 	};
 
 	const mockUserModel = {
@@ -140,16 +141,23 @@ describe('ConversationsService', () => {
 
 	describe('findOne', () => {
 		it('should return conversation if found', async () => {
-			const mockConversation = { _id: mockConversationId };
+			const mockConversation = {
+				_id: mockConversationId,
+				populate: jest.fn().mockResolvedValue(undefined),
+			};
 
 			conversationModel.findById.mockResolvedValue(mockConversation as any);
 
 			const result = await service.findOne(mockConversationId);
 
-			expect(result).toEqual(mockConversation);
 			expect(conversationModel.findById).toHaveBeenCalledWith(
 				new Types.ObjectId(mockConversationId),
 			);
+			expect(mockConversation.populate).toHaveBeenCalledWith({
+				path: 'participants',
+				select: 'username',
+			});
+			expect(result).toEqual(mockConversation);
 		});
 
 		it('should throw NotFoundException if conversation not found', async () => {
