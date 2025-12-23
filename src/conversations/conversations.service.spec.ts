@@ -102,6 +102,7 @@ describe('ConversationsService', () => {
 
 			expect(conversationModel.find).toHaveBeenCalledWith({
 				participants: new Types.ObjectId(mockUserId),
+				type: 'group',
 			});
 			expect(mockQuery.sort).toHaveBeenCalledWith({ updatedAt: -1 });
 			expect(mockQuery.skip).toHaveBeenCalledWith(0);
@@ -132,6 +133,7 @@ describe('ConversationsService', () => {
 
 			expect(conversationModel.find).toHaveBeenCalledWith({
 				participants: new Types.ObjectId(mockUserId),
+				type: 'group',
 			});
 			expect(mockQuery.sort).toHaveBeenCalledWith({ updatedAt: -1 });
 			expect(mockQuery.skip).toHaveBeenCalledWith(0);

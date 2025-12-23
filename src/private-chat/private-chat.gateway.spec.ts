@@ -101,25 +101,31 @@ describe('PrivateChatGateway', () => {
 	describe('handleFindAll', () => {
 		it('should join conversation room and emit messages', async () => {
 			const client = mockSocket();
+			const conversationId = new Types.ObjectId();
 			const messages = [
 				{
 					_id: new Types.ObjectId(),
-					conversation: { _id: new Types.ObjectId() },
+					conversation: { _id: conversationId },
 				},
 			];
 			const total = 1;
 			const totalPages = 1;
 
-			mockService.findAll.mockResolvedValueOnce({
+			const data = {
 				data: messages,
 				total,
 				totalPages,
+			};
+
+			mockService.findAll.mockResolvedValueOnce({
+				messages: data,
+				conversation: { _id: conversationId },
 			});
 
 			await gateway.handleFindAll({ recipientId: 'xyz' }, client);
 
 			expect(client.join).toHaveBeenCalledWith(
-				`conversation:${messages[0].conversation._id.toString()}`,
+				`conversation:${conversationId.toString()}`,
 			);
 			expect(client.emit).toHaveBeenCalledWith('conversation-messages', {
 				data: messages,

@@ -262,8 +262,8 @@ describe('PrivateChatService', () => {
 			mockPrivateMessageModel.countDocuments.mockResolvedValueOnce(1);
 			mockUserModel.findById.mockResolvedValueOnce({ username: 'Sender' });
 
-			const result = await service.findAll(senderId, recipientId);
-
+			const res = await service.findAll(senderId, recipientId);
+			const result = res.messages;
 			expect(result.data).toEqual([
 				{
 					_id: expect.any(Types.ObjectId),

@@ -82,7 +82,7 @@ export class GroupChatService {
 		const [messages, total] = await Promise.all([
 			this.groupMessageModel
 				.find({ conversation: conversation._id })
-				.sort({ createdAt: 1 }) // oldest first
+				.sort({ createdAt: -1 }) // oldest first
 				.skip(skip)
 				.limit(limit)
 				.populate('sender', 'username')

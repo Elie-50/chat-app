@@ -160,7 +160,7 @@ export class PrivateChatService {
 		const [messages, total] = await Promise.all([
 			this.privateMessageModel
 				.find({ conversation: conversation._id })
-				.sort({ createdAt: 1 }) // oldest first
+				.sort({ createdAt: -1 }) // oldest first
 				.skip(skip)
 				.limit(limit)
 				.populate('sender', 'username')
@@ -175,12 +175,14 @@ export class PrivateChatService {
 			sender: (message.sender as unknown as User).username,
 		}));
 
-		return {
+		const data = {
 			data: messagesWithSender,
 			page,
 			size: limit,
 			total,
 			totalPages: Math.ceil(total / limit),
 		};
+
+		return { messages: data, conversation };
 	}
 }

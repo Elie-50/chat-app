@@ -72,28 +72,17 @@ export class PrivateChatGateway {
 		if (!sender) return;
 
 		try {
-			const {
-				data: messages,
-				total,
-				totalPages,
-			} = await this.privateChatService.findAll(
-				sender._id,
-				data.recipientId,
-				data.page || 1,
-				data.size || 20,
-			);
+			const { messages: result, conversation } =
+				await this.privateChatService.findAll(
+					sender._id,
+					data.recipientId,
+					data.page || 1,
+					data.size || 20,
+				);
+			const conversationId = conversation._id.toString();
+			await client.join(`conversation:${conversationId}`);
 
-			// If there are messages, join the conversation room
-			if (messages.length > 0) {
-				const conversationId = messages[0].conversation._id.toString();
-				await client.join(`conversation:${conversationId}`);
-			}
-
-			client.emit('conversation-messages', {
-				data: messages,
-				total,
-				totalPages,
-			});
+			client.emit('conversation-messages', result);
 		} catch (error: unknown) {
 			const err = error as HttpException;
 			client.emit('error:private-message', { message: err.message });

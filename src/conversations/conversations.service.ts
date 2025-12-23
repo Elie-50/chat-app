@@ -34,7 +34,7 @@ export class ConversationsService {
 
 		const [data, total] = await Promise.all([
 			this.conversationModel
-				.find({ participants: userObjId })
+				.find({ participants: userObjId, type: 'group' })
 				.sort({ updatedAt: -1 })
 				.select('name admin')
 				.skip(skip)
