@@ -16,6 +16,9 @@ export class PrivateMessage {
 
 	@Prop()
 	modification?: string;
+
+	createdAt: Date;
+	updatedAt: Date;
 }
 
 export const PrivateMessageSchema =

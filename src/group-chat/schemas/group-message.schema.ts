@@ -16,6 +16,9 @@ export class GroupMessage {
 
 	@Prop()
 	modification?: string;
+
+	createdAt: Date;
+	updatedAt: Date;
 }
 
 export const GroupMessageSchema = SchemaFactory.createForClass(GroupMessage);

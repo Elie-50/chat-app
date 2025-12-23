@@ -17,6 +17,7 @@ describe('FollowController', () => {
 		isFollowing: jest.fn(),
 		getFollowers: jest.fn(),
 		getFollowing: jest.fn(),
+		getFriends: jest.fn(),
 	};
 
 	const mockJwtService = {
@@ -38,6 +39,8 @@ describe('FollowController', () => {
 
 		controller = module.get<FollowController>(FollowController);
 		service = module.get(FollowService);
+
+		jest.clearAllMocks();
 	});
 
 	it('should be defined', () => {
@@ -81,10 +84,16 @@ describe('FollowController', () => {
 			const page = '2';
 			const size = '5';
 			const userId = mockOtherUserId;
+			const req = { user: { _id: mockUserId } } as any;
 
-			const result = await controller.getFollowers(userId, page, size);
+			const result = await controller.getFollowers(userId, req, page, size);
 			expect(result).toEqual(mockData);
-			expect(service.getFollowers).toHaveBeenCalledWith(userId, 2, 5);
+			expect(service.getFollowers).toHaveBeenCalledWith(
+				userId,
+				mockUserId,
+				2,
+				5,
+			);
 		});
 	});
 
@@ -114,7 +123,12 @@ describe('FollowController', () => {
 
 			const result = await controller.getMyFollowers(req, page, size);
 			expect(result).toEqual(mockData);
-			expect(service.getFollowers).toHaveBeenCalledWith(mockUserId, 1, 10);
+			expect(service.getFollowers).toHaveBeenCalledWith(
+				mockUserId,
+				mockUserId,
+				1,
+				10,
+			);
 		});
 	});
 
@@ -130,6 +144,26 @@ describe('FollowController', () => {
 			const result = await controller.getMyFollowing(req, page, size);
 			expect(result).toEqual(mockData);
 			expect(service.getFollowing).toHaveBeenCalledWith(mockUserId, 2, 5);
+		});
+	});
+
+	describe('getMyFriends', () => {
+		it('should call service.getFollowing with req.user._id', async () => {
+			const mockData = {
+				friends: [],
+				currentPage: 1,
+				totalPages: 1,
+				totalFriends: 0,
+			};
+			service.getFriends.mockResolvedValue(mockData);
+
+			const req: any = { user: { _id: mockUserId } };
+			const page = '2';
+			const size = '5';
+
+			const result = await controller.getFriends(req, page, size);
+			expect(result).toEqual(mockData);
+			expect(service.getFriends).toHaveBeenCalledWith(mockUserId, 2, 5);
 		});
 	});
 });

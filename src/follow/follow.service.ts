@@ -9,6 +9,10 @@ import { User, UserDocument } from '../users/schemas/user.schema';
 import { Model, Types } from 'mongoose';
 import { MongoServerError } from 'mongodb';
 
+interface CountResult {
+	total: number;
+}
+
 @Injectable()
 export class FollowService {
 	constructor(
@@ -60,27 +64,67 @@ export class FollowService {
 		return { success: true };
 	}
 
-	async getFollowers(userId: string, page = 1, size = 10) {
+	async getFollowers(
+		userId: string,
+		currentUserId: string,
+		page = 1,
+		size = 10,
+	) {
 		const limit = Math.min(size, 50);
 		const skip = (page - 1) * limit;
 
-		const [followers, total] = await Promise.all([
-			this.followModel
-				.find({ following: new Types.ObjectId(userId) })
-				.sort({ createdAt: -1 })
-				.skip(skip)
-				.limit(limit)
-				.populate('follower', 'username')
-				.lean(),
-			this.followModel.countDocuments({
-				following: new Types.ObjectId(userId),
-			}),
+		const followersAgg = await this.followModel.aggregate([
+			{ $match: { following: new Types.ObjectId(userId) } },
+			{ $sort: { createdAt: -1 } },
+			{ $skip: skip },
+			{ $limit: limit },
+
+			{
+				$lookup: {
+					from: 'users',
+					localField: 'follower',
+					foreignField: '_id',
+					as: 'follower',
+				},
+			},
+			{ $unwind: '$follower' },
+
+			{
+				$lookup: {
+					from: 'follows',
+					let: { followerId: '$follower._id' },
+					pipeline: [
+						{
+							$match: {
+								$expr: {
+									$and: [
+										{ $eq: ['$follower', new Types.ObjectId(currentUserId)] },
+										{ $eq: ['$following', '$$followerId'] },
+									],
+								},
+							},
+						},
+					],
+					as: 'isFollowingArray',
+				},
+			},
+
+			{
+				$project: {
+					_id: '$follower._id',
+					username: '$follower.username',
+					isFollowing: { $gt: [{ $size: '$isFollowingArray' }, 0] },
+				},
+			},
 		]);
 
-		const data = followers.map((f) => f.follower);
+		// Total count
+		const total = await this.followModel.countDocuments({
+			following: new Types.ObjectId(userId),
+		});
 
 		return {
-			data,
+			data: followersAgg,
 			page,
 			size: limit,
 			total,
@@ -111,6 +155,59 @@ export class FollowService {
 			size: limit,
 			total,
 			totalPages: Math.ceil(total / limit),
+		};
+	}
+
+	async getFriends(userId: string, page = 1, size = 10) {
+		const userObjId = new Types.ObjectId(userId);
+		const limit = Math.min(size, 50);
+
+		const basePipeline = [
+			{ $match: { follower: userObjId } },
+			{
+				$lookup: {
+					from: 'follows',
+					localField: 'following',
+					foreignField: 'follower',
+					as: 'mutuals',
+				},
+			},
+			{ $match: { 'mutuals.following': userObjId } },
+			{
+				$lookup: {
+					from: 'users',
+					localField: 'following',
+					foreignField: '_id',
+					as: 'friend',
+				},
+			},
+			{ $unwind: '$friend' },
+			{
+				$project: {
+					_id: '$friend._id',
+					username: '$friend.username',
+				},
+			},
+		];
+
+		const countPipeline = [...basePipeline, { $count: 'total' }];
+		const countResult = await this.followModel
+			.aggregate<CountResult>(countPipeline)
+			.exec();
+		const totalFriends: number = countResult[0]?.total || 0;
+
+		const paginatedPipeline = [
+			...basePipeline,
+			{ $skip: (page - 1) * limit },
+			{ $limit: limit },
+		];
+		const friends = await this.followModel.aggregate(paginatedPipeline).exec();
+
+		return {
+			totalFriends,
+			totalPages: Math.ceil(totalFriends / limit),
+			currentPage: page,
+			friends,
 		};
 	}
 }

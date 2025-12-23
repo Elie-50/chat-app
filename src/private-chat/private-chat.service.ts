@@ -59,6 +59,7 @@ export class PrivateChatService {
 			_id: message._id,
 			sender: sender.username,
 			content: message.content,
+			createdAt: message.createdAt,
 		};
 
 		return { conversation, message: result };

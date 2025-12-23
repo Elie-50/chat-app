@@ -156,6 +156,7 @@ describe('AuthService', () => {
 				user: {
 					_id: 'user-id-123',
 					email: 'test@example.com',
+					username: mockUser.username,
 				},
 			});
 		});

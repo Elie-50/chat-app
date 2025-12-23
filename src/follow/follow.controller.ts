@@ -34,11 +34,13 @@ export class FollowController {
 	@Get('followers/:userId')
 	getFollowers(
 		@Param('userId') userId: string,
+		@Req() req: AuthenticatedRequest,
 		@Query('page') page?: string,
 		@Query('size') size?: string,
 	) {
 		return this.followService.getFollowers(
 			userId,
+			req.user!._id,
 			Number(page) || 1,
 			Number(size) || 10,
 		);
@@ -65,6 +67,7 @@ export class FollowController {
 	) {
 		return this.followService.getFollowers(
 			req.user!._id,
+			req.user!._id,
 			Number(page) || 1,
 			Number(size) || 10,
 		);
@@ -77,6 +80,19 @@ export class FollowController {
 		@Query('size') size?: string,
 	) {
 		return this.followService.getFollowing(
+			req.user!._id,
+			Number(page) || 1,
+			Number(size) || 10,
+		);
+	}
+
+	@Get('me/friends')
+	getFriends(
+		@Req() req: AuthenticatedRequest,
+		@Query('page') page?: string,
+		@Query('size') size?: string,
+	) {
+		return this.followService.getFriends(
 			req.user!._id,
 			Number(page) || 1,
 			Number(size) || 10,

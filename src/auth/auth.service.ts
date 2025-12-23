@@ -99,7 +99,7 @@ export class AuthService {
 			const { iat, exp, ...cleanPayload } = payload;
 
 			const user = await this.userService.findOne(payload._id);
-
+			cleanPayload.username = user.username;
 			if (!user) {
 				throw new UnauthorizedException('Account does not exist');
 			}

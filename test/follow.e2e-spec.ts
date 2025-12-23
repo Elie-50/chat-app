@@ -288,6 +288,19 @@ describe('Follow (e2e)', () => {
 		expect(res.body.data.length).toBe(1);
 		expect(res.body.total).toBe(2);
 		expect(res.body.totalPages).toBe(2);
+		expect(res.body.data[0].isFollowing).toBeFalsy();
+
+		await followModel.create({ follower: user1._id, following: user3._id });
+
+		const res2 = await request(app.getHttpServer())
+			.get('/api/follow/me/followers?page=1&size=1')
+			.set('Authorization', `Bearer ${tokenUser1}`)
+			.expect(HttpStatus.OK);
+
+		expect(res2.body.data.length).toBe(1);
+		expect(res2.body.total).toBe(2);
+		expect(res2.body.totalPages).toBe(2);
+		expect(res2.body.data[0].isFollowing).toBeTruthy();
 	});
 
 	it('should paginate /me/following correctly', async () => {
@@ -321,6 +334,89 @@ describe('Follow (e2e)', () => {
 	it('should return 401 when accessing /me/following without auth', async () => {
 		await request(app.getHttpServer())
 			.get('/api/follow/me/following')
+			.expect(HttpStatus.UNAUTHORIZED);
+	});
+
+	it('should return mutual friends for a user', async () => {
+		// user1 follows user2 and user2 follows back
+		await followModel.create({ follower: user1._id, following: user2._id });
+		await followModel.create({ follower: user2._id, following: user1._id });
+
+		const res = await request(app.getHttpServer())
+			.get(`/api/follow/me/friends`)
+			.set('Authorization', `Bearer ${tokenUser1}`)
+			.expect(HttpStatus.OK);
+
+		expect(res.body.friends.length).toBe(1);
+		expect(res.body.friends[0]._id.toString()).toBe(user2._id.toString());
+		expect(res.body.totalFriends).toBe(1);
+		expect(res.body.totalPages).toBe(1);
+		expect(res.body.currentPage).toBe(1);
+	});
+
+	it('should return empty array if no mutual friends', async () => {
+		// user1 follows user2, but user2 does not follow back
+		await followModel.create({ follower: user1._id, following: user2._id });
+
+		const res = await request(app.getHttpServer())
+			.get(`/api/follow/me/friends`)
+			.set('Authorization', `Bearer ${tokenUser1}`)
+			.expect(HttpStatus.OK);
+
+		expect(res.body.friends).toEqual([]);
+		expect(res.body.totalFriends).toBe(0);
+		expect(res.body.totalPages).toBe(0);
+		expect(res.body.currentPage).toBe(1);
+	});
+
+	it('should paginate friends correctly', async () => {
+		// create multiple mutual friends
+		const user3 = await userModel.create({
+			email: 'user3@example.com',
+			username: 'user3',
+			verificationCode: '111111',
+			verificationDue: new Date(Date.now() + 3600000),
+		});
+		const user4 = await userModel.create({
+			email: 'user4@example.com',
+			username: 'user4',
+			verificationCode: '111111',
+			verificationDue: new Date(Date.now() + 3600000),
+		});
+
+		await followModel.create({ follower: user1._id, following: user2._id });
+		await followModel.create({ follower: user2._id, following: user1._id });
+		await followModel.create({ follower: user1._id, following: user3._id });
+		await followModel.create({ follower: user3._id, following: user1._id });
+		await followModel.create({ follower: user1._id, following: user4._id });
+		await followModel.create({ follower: user4._id, following: user1._id });
+
+		// page 1, size 2
+		const res = await request(app.getHttpServer())
+			.get(`/api/follow/me/friends?page=1&size=2`)
+			.set('Authorization', `Bearer ${tokenUser1}`)
+			.expect(HttpStatus.OK);
+
+		expect(res.body.friends.length).toBe(2);
+		expect(res.body.totalFriends).toBe(3);
+		expect(res.body.totalPages).toBe(2);
+		expect(res.body.currentPage).toBe(1);
+
+		// page 2
+		const res2 = await request(app.getHttpServer())
+			.get(`/api/follow/me/friends?page=2&size=2`)
+			.set('Authorization', `Bearer ${tokenUser1}`)
+			.expect(HttpStatus.OK);
+
+		expect(res2.body.friends.length).toBe(1);
+		expect(res2.body.totalFriends).toBe(3);
+		expect(res2.body.totalPages).toBe(2);
+		expect(res2.body.currentPage).toBe(2);
+	});
+
+	it('should return 401 if no auth token is provided', async () => {
+		await request(app.getHttpServer())
+			.get(`/api/follow/me/friends`)
 			.expect(HttpStatus.UNAUTHORIZED);
 	});
 });
