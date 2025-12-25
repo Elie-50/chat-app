@@ -42,6 +42,7 @@ export class PrivateChatGateway {
 				{
 					id: data.id,
 					content: data.content,
+					repliedTo: data.repliedTo,
 				},
 			);
 

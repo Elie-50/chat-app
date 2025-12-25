@@ -8,4 +8,6 @@ export class CreatePrivateMessageDto {
 	@IsNotEmpty()
 	@IsString()
 	content: string;
+
+	repliedTo?: string;
 }

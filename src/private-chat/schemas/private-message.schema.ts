@@ -17,6 +17,9 @@ export class PrivateMessage {
 	@Prop()
 	modification?: string;
 
+	@Prop({ type: Types.ObjectId, ref: 'PrivateMessage' })
+	reply?: Types.ObjectId;
+
 	createdAt: Date;
 	updatedAt: Date;
 }

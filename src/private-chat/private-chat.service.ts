@@ -12,6 +12,16 @@ import { Model, Types } from 'mongoose';
 import { PrivateMessage } from './schemas/private-message.schema';
 import { User } from '../users/schemas/user.schema';
 
+type ReplyToSend = {
+	_id: string;
+	sender: {
+		_id: string;
+		username: string;
+	};
+	content: string;
+	modification?: string;
+};
+
 @Injectable()
 export class PrivateChatService {
 	constructor(
@@ -48,11 +58,37 @@ export class PrivateChatService {
 			});
 		}
 
+		// fecth the reply if it exists
+		let replyObjId: Types.ObjectId | undefined;
+		let reply: ReplyToSend | undefined;
+		if (dto.repliedTo) {
+			replyObjId = new Types.ObjectId(dto.repliedTo);
+			const replyObj = await this.privateMessageModel
+				.findById(replyObjId)
+				.populate('sender', 'username');
+
+			if (!replyObj) {
+				reply = undefined;
+			} else {
+				reply = {
+					_id: dto.repliedTo,
+					sender: {
+						_id: '',
+						username:
+							(replyObj.sender as unknown as User).username || '[Not Found]',
+					},
+					content: replyObj.content,
+					modification: replyObj.modification,
+				};
+			}
+		}
+
 		// Save message
 		const message = await this.privateMessageModel.create({
 			conversation: conversation._id,
 			sender: senderObjId,
 			content: dto.content,
+			reply: replyObjId,
 		});
 
 		const result = {
@@ -60,6 +96,7 @@ export class PrivateChatService {
 			sender: sender.username,
 			content: message.content,
 			createdAt: message.createdAt,
+			reply,
 		};
 
 		return { conversation, message: result };
@@ -160,10 +197,15 @@ export class PrivateChatService {
 		const [messages, total] = await Promise.all([
 			this.privateMessageModel
 				.find({ conversation: conversation._id })
-				.sort({ createdAt: -1 }) // oldest first
+				.sort({ createdAt: -1 })
 				.skip(skip)
 				.limit(limit)
 				.populate('sender', 'username')
+				.populate({
+					path: 'reply',
+					select: '_id sender content modification',
+					populate: { path: 'sender', select: 'username' },
+				})
 				.lean(),
 			this.privateMessageModel.countDocuments({
 				conversation: conversation._id,
@@ -176,7 +218,7 @@ export class PrivateChatService {
 		}));
 
 		const data = {
-			data: messagesWithSender,
+			data: messagesWithSender.reverse(),
 			page,
 			size: limit,
 			total,

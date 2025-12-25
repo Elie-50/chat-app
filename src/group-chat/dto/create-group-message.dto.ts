@@ -8,4 +8,6 @@ export class CreateGroupMessageDto {
 	@IsString()
 	@IsNotEmpty()
 	content: string;
+
+	repliedTo?: string;
 }

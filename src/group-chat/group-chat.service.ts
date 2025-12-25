@@ -12,6 +12,16 @@ import { Model, Types } from 'mongoose';
 import { GroupMessage } from './schemas/group-message.schema';
 import { Conversation } from '../conversations/schemas/conversation.schema';
 
+type ReplyToSend = {
+	_id: string;
+	sender: {
+		_id: string;
+		username: string;
+	};
+	content: string;
+	modification?: string;
+};
+
 @Injectable()
 export class GroupChatService {
 	constructor(
@@ -22,13 +32,8 @@ export class GroupChatService {
 		private readonly conversationModel: Model<Conversation>,
 	) {}
 
-	async create(
-		currentUserId: string,
-		createGroupMessageDto: CreateGroupMessageDto,
-	) {
-		const conversation = await this.conversationModel.findById(
-			createGroupMessageDto.id,
-		);
+	async create(currentUserId: string, dto: CreateGroupMessageDto) {
+		const conversation = await this.conversationModel.findById(dto.id);
 
 		if (!conversation) {
 			throw new NotFoundException('conversation not found');
@@ -40,10 +45,36 @@ export class GroupChatService {
 			throw new NotFoundException('User not found');
 		}
 
+		// fecth the reply if it exists
+		let replyObjId: Types.ObjectId | undefined;
+		let reply: ReplyToSend | undefined;
+		if (dto.repliedTo) {
+			replyObjId = new Types.ObjectId(dto.repliedTo);
+			const replyObj = await this.groupMessageModel
+				.findById(replyObjId)
+				.populate('sender', 'username');
+
+			if (!replyObj) {
+				reply = undefined;
+			} else {
+				reply = {
+					_id: dto.repliedTo,
+					sender: {
+						_id: '',
+						username:
+							(replyObj.sender as unknown as User).username || '[Not Found]',
+					},
+					content: replyObj.content,
+					modification: replyObj.modification,
+				};
+			}
+		}
+
 		const message = await this.groupMessageModel.create({
 			conversation: conversation._id,
 			sender: sender._id,
-			content: createGroupMessageDto.content,
+			content: dto.content,
+			reply: replyObjId,
 		});
 
 		const result = {
@@ -51,6 +82,7 @@ export class GroupChatService {
 			sender: sender.username,
 			content: message.content,
 			createdAt: message.createdAt,
+			reply,
 		};
 
 		return { conversation, message: result };
@@ -82,10 +114,15 @@ export class GroupChatService {
 		const [messages, total] = await Promise.all([
 			this.groupMessageModel
 				.find({ conversation: conversation._id })
-				.sort({ createdAt: -1 }) // oldest first
+				.sort({ createdAt: -1 })
 				.skip(skip)
 				.limit(limit)
 				.populate('sender', 'username')
+				.populate({
+					path: 'reply',
+					select: '_id sender content modification',
+					populate: { path: 'sender', select: 'username' },
+				})
 				.lean(),
 			this.groupMessageModel.countDocuments({
 				conversation: conversation._id,
@@ -98,7 +135,7 @@ export class GroupChatService {
 		}));
 
 		return {
-			data: messagesWithSender,
+			data: messagesWithSender.reverse(),
 			page,
 			size: limit,
 			total,

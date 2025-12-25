@@ -17,6 +17,9 @@ export class GroupMessage {
 	@Prop()
 	modification?: string;
 
+	@Prop({ type: Types.ObjectId, ref: 'GroupMessage' })
+	reply?: Types.ObjectId;
+
 	createdAt: Date;
 	updatedAt: Date;
 }
