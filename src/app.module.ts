@@ -13,6 +13,10 @@ import { PrivateChatModule } from './private-chat/private-chat.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { GroupChatModule } from './group-chat/group-chat.module';
 import { ConversationsModule } from './conversations/conversations.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { NoThrottlerGuard } from './no-throttler.guard';
 
 const getURI = () => {
 	const dbURI =
@@ -30,6 +34,14 @@ const getURI = () => {
 
 @Module({
 	imports: [
+		ThrottlerModule.forRoot({
+			throttlers: [
+				{
+					ttl: 60000,
+					limit: 10,
+				},
+			],
+		}),
 		ServeStaticModule.forRoot({
 			rootPath: path.join(__dirname, '..', 'client'),
 			exclude: ['/api/{*test}'],
@@ -72,8 +84,15 @@ const getURI = () => {
 		PrivateChatModule,
 		GroupChatModule,
 		ConversationsModule,
+		NotificationsModule,
 	],
 	controllers: [],
-	providers: [],
+	providers: [
+		{
+			provide: APP_GUARD,
+			useClass:
+				process.env.NODE_ENV === 'test' ? NoThrottlerGuard : ThrottlerGuard,
+		},
+	],
 })
 export class AppModule {}

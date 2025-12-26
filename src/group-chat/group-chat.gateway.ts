@@ -11,6 +11,10 @@ import { UpdateGroupMessageDto } from './dto/update-group-message.dto';
 import { HttpException, UseGuards } from '@nestjs/common';
 import * as wsAuthGuard from '../auth/ws-auth.guard';
 import { Server } from 'socket.io';
+import {
+	NotificationsGateway,
+	type ConversationPopulated,
+} from '../notifications/notifications.gateway';
 
 @UseGuards(wsAuthGuard.WsAuthGuard)
 @WebSocketGateway({
@@ -23,7 +27,10 @@ import { Server } from 'socket.io';
 	},
 })
 export class GroupChatGateway {
-	constructor(private readonly groupChatService: GroupChatService) {}
+	constructor(
+		private readonly groupChatService: GroupChatService,
+		private readonly notificationsGateway: NotificationsGateway,
+	) {}
 
 	@WebSocketServer() server: Server;
 
@@ -36,7 +43,7 @@ export class GroupChatGateway {
 		if (!sender) return;
 
 		try {
-			const { message } = await this.groupChatService.create(
+			const { message, conversation } = await this.groupChatService.create(
 				sender._id,
 				createGroupMessageDto,
 			);
@@ -50,6 +57,13 @@ export class GroupChatGateway {
 					conversationId,
 					message,
 				});
+			this.notificationsGateway.sendGroupNotification({
+				conversation: conversation as unknown as ConversationPopulated,
+				sender: {
+					_id: sender._id,
+					username: sender.username || 'a member',
+				},
+			});
 		} catch (error: unknown) {
 			const err = error as HttpException;
 			client.emit('error:group-message', { message: err.message });

@@ -10,6 +10,7 @@ import { Server } from 'socket.io';
 import * as wsAuthGuard from '../auth/ws-auth.guard';
 import { HttpException, UseGuards } from '@nestjs/common';
 import { CreatePrivateMessageDto } from './dto/create-private-chat.dto';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 @WebSocketGateway({
 	namespace: '/private-chat',
@@ -21,7 +22,10 @@ import { CreatePrivateMessageDto } from './dto/create-private-chat.dto';
 	},
 })
 export class PrivateChatGateway {
-	constructor(private readonly privateChatService: PrivateChatService) {}
+	constructor(
+		private readonly privateChatService: PrivateChatService,
+		private readonly notificationGateway: NotificationsGateway,
+	) {}
 
 	@WebSocketServer()
 	server: Server;
@@ -56,6 +60,13 @@ export class PrivateChatGateway {
 					conversationId: conversation._id,
 					message,
 				});
+			this.notificationGateway.sendPrivateNotification({
+				sender: {
+					_id: sender._id,
+					username: sender.username || 'a friend',
+				},
+				receiverId: data.id,
+			});
 		} catch (error: unknown) {
 			const err = error as HttpException;
 			client.emit('error:private-message', { message: err.message });

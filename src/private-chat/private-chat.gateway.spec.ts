@@ -5,6 +5,7 @@ import { Server, Socket } from 'socket.io';
 import { Types } from 'mongoose';
 import { HttpException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 describe('PrivateChatGateway', () => {
 	let gateway: PrivateChatGateway;
@@ -34,6 +35,10 @@ describe('PrivateChatGateway', () => {
 		verifyAsync: jest.fn(),
 	};
 
+	const mockNotificationsGateway = {
+		sendPrivateNotification: jest.fn(),
+	};
+
 	beforeEach(async () => {
 		mockServer = {
 			to: jest.fn().mockReturnThis(),
@@ -45,6 +50,7 @@ describe('PrivateChatGateway', () => {
 				PrivateChatGateway,
 				{ provide: PrivateChatService, useValue: mockService },
 				{ provide: JwtService, useValue: mockJwtService },
+				{ provide: NotificationsGateway, useValue: mockNotificationsGateway },
 			],
 		}).compile();
 

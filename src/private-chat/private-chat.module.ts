@@ -11,6 +11,7 @@ import {
 	PrivateMessageSchema,
 } from './schemas/private-message.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
 	providers: [PrivateChatGateway, PrivateChatService],
@@ -22,6 +23,7 @@ import { User, UserSchema } from '../users/schemas/user.schema';
 			{ name: PrivateMessage.name, schema: PrivateMessageSchema },
 		]),
 		MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+		NotificationsModule,
 	],
 })
 export class PrivateChatModule {}

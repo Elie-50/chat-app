@@ -5,7 +5,13 @@ export type UserDocument = HydratedDocument<User>;
 
 @Schema()
 export class User {
-	@Prop({ unique: true, maxLength: 50, minlength: 3, required: false })
+	@Prop({
+		unique: true,
+		maxLength: 50,
+		minlength: 3,
+		required: false,
+		index: true,
+	})
 	username?: string;
 
 	@Prop({ unique: true, required: true, index: true })
@@ -19,5 +25,3 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
-
-UserSchema.index({ username: 1 });

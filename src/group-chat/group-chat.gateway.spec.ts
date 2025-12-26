@@ -5,6 +5,7 @@ import { HttpException } from '@nestjs/common';
 import { Server } from 'socket.io';
 import { CustomSocket } from '../auth/ws-auth.guard';
 import { Types } from 'mongoose';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 // Mock GroupChatService
 jest.mock('./group-chat.service');
@@ -15,6 +16,10 @@ describe('GroupChatGateway', () => {
 	let groupChatService: GroupChatService;
 	let server: Server;
 	let client: CustomSocket;
+
+	const mockNotificationsGateway = {
+		sendGroupNotification: jest.fn(),
+	};
 
 	beforeEach(async () => {
 		const module: TestingModule = await Test.createTestingModule({
@@ -31,6 +36,7 @@ describe('GroupChatGateway', () => {
 						removeMember: jest.fn(),
 					},
 				},
+				{ provide: NotificationsGateway, useValue: mockNotificationsGateway },
 			],
 		}).compile();
 

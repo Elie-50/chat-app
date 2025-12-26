@@ -11,6 +11,7 @@ import {
 	GroupMessage,
 	GroupMessageSchema,
 } from './schemas/group-message.schema';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
 	providers: [GroupChatGateway, GroupChatService],
@@ -22,6 +23,7 @@ import {
 		MongooseModule.forFeature([
 			{ name: GroupMessage.name, schema: GroupMessageSchema },
 		]),
+		NotificationsModule,
 	],
 })
 export class GroupChatModule {}

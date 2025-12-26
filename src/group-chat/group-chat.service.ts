@@ -33,7 +33,9 @@ export class GroupChatService {
 	) {}
 
 	async create(currentUserId: string, dto: CreateGroupMessageDto) {
-		const conversation = await this.conversationModel.findById(dto.id);
+		const conversation = await this.conversationModel
+			.findById(dto.id)
+			.populate('participants', 'username');
 
 		if (!conversation) {
 			throw new NotFoundException('conversation not found');

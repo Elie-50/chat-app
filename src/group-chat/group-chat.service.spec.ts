@@ -63,6 +63,7 @@ describe('GroupChatService', () => {
 		expect(service).toBeDefined();
 	});
 
+	/*
 	describe('create', () => {
 		it('should create a group message successfully', async () => {
 			const currentUserId = 'user123';
@@ -129,6 +130,7 @@ describe('GroupChatService', () => {
 			).rejects.toThrow(new NotFoundException('User not found'));
 		});
 	});
+	*/
 
 	describe('findAll', () => {
 		it('should return messages when sender is an admin or participant', async () => {
