@@ -186,6 +186,8 @@ export class FollowService {
 				$project: {
 					_id: '$friend._id',
 					username: '$friend.username',
+					isOnline: '$friend.isOnline',
+					lastSeen: '$friend.lastSeen',
 				},
 			},
 		];

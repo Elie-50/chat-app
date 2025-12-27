@@ -22,6 +22,12 @@ export class User {
 
 	@Prop({ required: false })
 	verificationDue?: Date;
+
+	@Prop({ default: false })
+	isOnline: boolean;
+
+	@Prop({ required: false })
+	lastSeen?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

@@ -148,6 +148,8 @@ export class UsersService {
 					$project: {
 						username: 1,
 						isFollowing: 1,
+						isOnline: 1,
+						lastSeen: 1,
 					},
 				},
 
@@ -169,7 +171,9 @@ export class UsersService {
 
 	async findOne(userId: string) {
 		const userObjId = new Types.ObjectId(userId);
-		const user = await this.userModel.findById(userObjId);
+		const user = await this.userModel
+			.findById(userObjId)
+			.select('_id username isOnline lastSeen');
 
 		if (!user) {
 			throw new NotFoundException('User not found');
@@ -178,6 +182,8 @@ export class UsersService {
 		return {
 			_id: user._id,
 			username: user.username,
+			isOnline: user.isOnline,
+			lastSeen: user.lastSeen,
 		};
 	}
 }

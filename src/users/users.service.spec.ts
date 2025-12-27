@@ -341,6 +341,8 @@ describe('UsersService', () => {
 				$project: {
 					username: 1,
 					isFollowing: 1,
+					isOnline: 1,
+					lastSeen: 1,
 				},
 			});
 

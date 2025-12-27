@@ -17,6 +17,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { NoThrottlerGuard } from './no-throttler.guard';
+import { OnlineModule } from './online/online.module';
 
 const getURI = () => {
 	const dbURI =
@@ -85,6 +86,7 @@ const getURI = () => {
 		GroupChatModule,
 		ConversationsModule,
 		NotificationsModule,
+		OnlineModule,
 	],
 	controllers: [],
 	providers: [
