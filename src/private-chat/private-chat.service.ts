@@ -33,6 +33,26 @@ export class PrivateChatService {
 		private readonly userModel: Model<User>,
 	) {}
 
+	async findConversationId(senderId: string, recipientId: string) {
+		const senderObjId = new Types.ObjectId(senderId);
+		const recipientObjId = new Types.ObjectId(recipientId);
+
+		const participants = [senderObjId, recipientObjId].sort();
+
+		const conversation = await this.conversationModel
+			.findOne({
+				participants: { $all: participants, $size: 2 },
+			})
+			.select('_id')
+			.lean();
+
+		if (!conversation) {
+			throw new NotFoundException('Conversation not found');
+		}
+
+		return conversation._id.toString();
+	}
+
 	async create(senderId: string, dto: CreatePrivateMessageDto) {
 		const senderObjId = new Types.ObjectId(senderId);
 		const recipientObjId = new Types.ObjectId(dto.id);

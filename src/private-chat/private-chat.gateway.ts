@@ -50,9 +50,6 @@ export class PrivateChatGateway {
 				},
 			);
 
-			// Join the conversation room
-			await client.join(`conversation:${conversation._id.toString()}`);
-
 			// Emit message to all participants in the conversation
 			this.server
 				.to(`conversation:${conversation._id.toString()}`)
@@ -92,9 +89,10 @@ export class PrivateChatGateway {
 					data.size || 20,
 				);
 			const conversationId = conversation._id.toString();
-			await client.join(`conversation:${conversationId}`);
 
-			client.emit('conversation-messages', result);
+			this.server
+				.to(`conversation:${conversationId}`)
+				.emit('conversation-messages', result);
 		} catch (error: unknown) {
 			const err = error as HttpException;
 			client.emit('error:private-message', { message: err.message });
@@ -143,6 +141,84 @@ export class PrivateChatGateway {
 			this.server
 				.to(`conversation:${conversation._id.toString()}`)
 				.emit('private-message:removed', { messageId: deletedMessage._id });
+		} catch (error: unknown) {
+			const err = error as HttpException;
+			client.emit('error:private-message', { message: err.message });
+		}
+	}
+
+	@SubscribeMessage('connect:user')
+	@UseGuards(wsAuthGuard.WsAuthGuard)
+	async connectToSocket(
+		@MessageBody() data: { recipientId: string },
+		@ConnectedSocket() client: wsAuthGuard.CustomSocket,
+	) {
+		try {
+			const user = client.data.payload;
+			if (!user) {
+				return;
+			}
+
+			const conversationId = await this.privateChatService.findConversationId(
+				user._id,
+				data.recipientId,
+			);
+
+			await client.join(`conversation:${conversationId}`);
+			this.server.to(`conversation:${conversationId}`).emit('user:joined', {});
+		} catch (error: unknown) {
+			const err = error as HttpException;
+			client.emit('error:private-message', { message: err.message });
+		}
+	}
+
+	@SubscribeMessage('typing:start')
+	@UseGuards(wsAuthGuard.WsAuthGuard)
+	async handleStartedTyping(
+		@MessageBody() data: { recipientId: string },
+		@ConnectedSocket() client: wsAuthGuard.CustomSocket,
+	) {
+		try {
+			const user = client.data.payload;
+			if (!user) {
+				return;
+			}
+
+			const conversationId = await this.privateChatService.findConversationId(
+				user._id,
+				data.recipientId,
+			);
+
+			this.server.to(`conversation:${conversationId}`).emit('typing:update', {
+				_id: user._id,
+				username: user.username,
+				isTyping: true,
+			});
+		} catch (error: unknown) {
+			const err = error as HttpException;
+			client.emit('error:private-message', { message: err.message });
+		}
+	}
+
+	@SubscribeMessage('typing:stop')
+	@UseGuards(wsAuthGuard.WsAuthGuard)
+	async handleStoppedTyping(
+		@MessageBody() data: { recipientId: string },
+		@ConnectedSocket() client: wsAuthGuard.CustomSocket,
+	) {
+		try {
+			const user = client.data.payload;
+			if (!user) {
+				return;
+			}
+			const conversationId = await this.privateChatService.findConversationId(
+				user._id,
+				data.recipientId,
+			);
+
+			this.server
+				.to(`conversation:${conversationId}`)
+				.emit('typing:update', { _id: user._id, isTyping: false });
 		} catch (error: unknown) {
 			const err = error as HttpException;
 			client.emit('error:private-message', { message: err.message });

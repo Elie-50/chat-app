@@ -79,9 +79,6 @@ describe('PrivateChatGateway', () => {
 				id: 'abc',
 				content: 'Hi',
 			});
-			expect(client.join).toHaveBeenCalledWith(
-				`conversation:${conversationId.toString()}`,
-			);
 			expect(mockServer.to).toHaveBeenCalledWith(
 				`conversation:${conversationId.toString()}`,
 			);
@@ -130,14 +127,9 @@ describe('PrivateChatGateway', () => {
 
 			await gateway.handleFindAll({ recipientId: 'xyz' }, client);
 
-			expect(client.join).toHaveBeenCalledWith(
+			expect(mockServer.to).toHaveBeenCalledWith(
 				`conversation:${conversationId.toString()}`,
 			);
-			expect(client.emit).toHaveBeenCalledWith('conversation-messages', {
-				data: messages,
-				total,
-				totalPages,
-			});
 		});
 
 		it('should emit error if service throws', async () => {
