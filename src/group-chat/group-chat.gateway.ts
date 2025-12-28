@@ -50,7 +50,6 @@ export class GroupChatGateway {
 
 			const conversationId = createGroupMessageDto.id;
 
-			await client.join(`conversation:${conversationId}`);
 			this.server
 				.to(`conversation:${conversationId}`)
 				.emit('group-message:received', {
@@ -88,7 +87,6 @@ export class GroupChatGateway {
 				page,
 				size,
 			);
-			await client.join(`conversation:${conversationId}`);
 
 			// Emit the messages for the specific conversation to the client
 			this.server
@@ -116,7 +114,6 @@ export class GroupChatGateway {
 			);
 
 			const conversationId = conversation._id.toString();
-			// await client.join(`conversation:${conversationId}`);
 			this.server
 				.to(`conversation:${conversationId}`)
 				.emit('group-message:updated', { message });
@@ -140,14 +137,81 @@ export class GroupChatGateway {
 				data.messageId,
 			);
 
-			await client.join(`conversation:${conversation._id.toString()}`);
-
 			this.server
 				.to(`conversation:${conversation._id.toString()}`)
 				.emit('group-message:removed', { message });
 		} catch (error: unknown) {
 			const err = error as HttpException;
 			client.emit('error:group-message', { message: err.message });
+		}
+	}
+
+	@SubscribeMessage('connect:user')
+	@UseGuards(wsAuthGuard.WsAuthGuard)
+	async connectToSocket(
+		@MessageBody() data: { conversationId: string },
+		@ConnectedSocket() client: wsAuthGuard.CustomSocket,
+	) {
+		try {
+			const user = client.data.payload;
+			if (!user) {
+				return;
+			}
+
+			const { conversationId } = data;
+
+			await client.join(`conversation:${conversationId}`);
+			this.server.to(`conversation:${conversationId}`).emit('user:joined', {});
+		} catch (error: unknown) {
+			const err = error as HttpException;
+			client.emit('error:private-message', { message: err.message });
+		}
+	}
+
+	@SubscribeMessage('typing:start')
+	@UseGuards(wsAuthGuard.WsAuthGuard)
+	handleStartedTyping(
+		@MessageBody() data: { conversationId: string },
+		@ConnectedSocket() client: wsAuthGuard.CustomSocket,
+	) {
+		try {
+			const user = client.data.payload;
+			if (!user) {
+				return;
+			}
+
+			const { conversationId } = data;
+
+			this.server.to(`conversation:${conversationId}`).emit('typing:update', {
+				_id: user._id,
+				username: user.username,
+				isTyping: true,
+			});
+		} catch (error: unknown) {
+			const err = error as HttpException;
+			client.emit('error:private-message', { message: err.message });
+		}
+	}
+
+	@SubscribeMessage('typing:stop')
+	@UseGuards(wsAuthGuard.WsAuthGuard)
+	handleStoppedTyping(
+		@MessageBody() data: { conversationId: string },
+		@ConnectedSocket() client: wsAuthGuard.CustomSocket,
+	) {
+		try {
+			const user = client.data.payload;
+			if (!user) {
+				return;
+			}
+			const { conversationId } = data;
+
+			this.server
+				.to(`conversation:${conversationId}`)
+				.emit('typing:update', { _id: user._id, isTyping: false });
+		} catch (error: unknown) {
+			const err = error as HttpException;
+			client.emit('error:private-message', { message: err.message });
 		}
 	}
 }
