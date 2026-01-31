@@ -1,19 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { EmailService } from '../email/email.service';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
-import {
-	InternalServerErrorException,
-	NotFoundException,
-	UnauthorizedException,
-} from '@nestjs/common';
+import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
 describe('AuthService', () => {
 	let service: AuthService;
 	let usersService: jest.Mocked<UsersService>;
-	let emailService: jest.Mocked<EmailService>;
 	let jwtService: jest.Mocked<JwtService>;
 
 	const mockUsersService = {
@@ -21,10 +15,6 @@ describe('AuthService', () => {
 		findByEmailAndVerify: jest.fn(),
 		update: jest.fn(),
 		findOne: jest.fn(),
-	};
-
-	const mockEmailService = {
-		sendVerificationCode: jest.fn(),
 	};
 
 	const mockJwtService = {
@@ -47,78 +37,13 @@ describe('AuthService', () => {
 			providers: [
 				AuthService,
 				{ provide: UsersService, useValue: mockUsersService },
-				{ provide: EmailService, useValue: mockEmailService },
 				{ provide: JwtService, useValue: mockJwtService },
 			],
 		}).compile();
 
 		service = module.get(AuthService);
 		usersService = module.get(UsersService);
-		emailService = module.get(EmailService);
 		jwtService = module.get(JwtService);
-	});
-
-	describe('requestCode', () => {
-		it('should send verification code and return success', async () => {
-			usersService.findOrCreate.mockResolvedValueOnce(mockUser as any);
-
-			const result = await service.requestCode('test@example.com');
-
-			expect(usersService.findOrCreate).toHaveBeenCalledWith(
-				'test@example.com',
-			);
-			expect(emailService.sendVerificationCode).toHaveBeenCalledWith(
-				mockUser.verificationCode,
-				'test@example.com',
-			);
-			expect(result).toEqual({ message: 'Email sent successfully' });
-		});
-
-		it('should throw InternalServerErrorException if user not created', async () => {
-			usersService.findOrCreate.mockResolvedValueOnce(null as any);
-
-			await expect(service.requestCode('bad@example.com')).rejects.toThrow(
-				InternalServerErrorException,
-			);
-		});
-	});
-
-	describe('verify', () => {
-		it('should verify user, generate tokens, set cookie, and return user + accessToken', async () => {
-			usersService.findByEmailAndVerify.mockResolvedValueOnce(mockUser as any);
-
-			jwtService.signAsync
-				.mockResolvedValueOnce('access-token') // access
-				.mockResolvedValueOnce('refresh-token'); // refresh
-
-			const res = { cookie: jest.fn() } as unknown as Response;
-
-			const result = await service.verify('test@example.com', '123456', res);
-
-			expect(usersService.findByEmailAndVerify).toHaveBeenCalledWith(
-				'test@example.com',
-				'123456',
-			);
-			expect(jwtService.signAsync).toHaveBeenCalledTimes(2);
-			expect(res.cookie).toHaveBeenCalledWith(
-				'refresh_token',
-				'refresh-token',
-				expect.any(Object),
-			);
-			expect(result).toEqual({
-				user: mockUser,
-				accessToken: 'access-token',
-			});
-		});
-
-		it('should throw NotFoundException when user is not found', async () => {
-			usersService.findByEmailAndVerify.mockResolvedValueOnce(null as any);
-			const res = {} as unknown as Response;
-
-			await expect(service.verify('a@b.com', '000000', res)).rejects.toThrow(
-				NotFoundException,
-			);
-		});
 	});
 
 	describe('refreshTokens', () => {
@@ -227,7 +152,6 @@ describe('AuthService', () => {
 			expect(result).toEqual({
 				user: {
 					_id: id,
-					email: 'test@example.com',
 					username: 'newName',
 				},
 				accessToken: 'access-token',

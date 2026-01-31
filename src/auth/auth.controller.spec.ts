@@ -39,45 +39,6 @@ describe('AuthController', () => {
 		controller = module.get(AuthController);
 	});
 
-	describe('requestCode', () => {
-		it('should call authService.requestCode and return result', async () => {
-			const mockResult = { message: 'Email sent successfully' };
-			mockAuthService.requestCode.mockResolvedValueOnce(mockResult);
-
-			const result = await controller.requestCode({
-				email: 'test@example.com',
-			});
-
-			expect(mockAuthService.requestCode).toHaveBeenCalledWith(
-				'test@example.com',
-			);
-			expect(result).toEqual(mockResult);
-		});
-	});
-
-	describe('verifyEmail', () => {
-		it('should call authService.verify and return user + accessToken', async () => {
-			const mockResponse = { cookie: jest.fn() } as unknown as Response;
-			const mockResult = {
-				user: { _id: '123', email: 'test@example.com' },
-				accessToken: 'access-token',
-			};
-			mockAuthService.verify.mockResolvedValueOnce(mockResult);
-
-			const result = await controller.verifyEmail(
-				{ email: 'test@example.com', code: '123456' },
-				mockResponse,
-			);
-
-			expect(mockAuthService.verify).toHaveBeenCalledWith(
-				'test@example.com',
-				'123456',
-				mockResponse,
-			);
-			expect(result).toEqual(mockResult);
-		});
-	});
-
 	describe('refresh', () => {
 		it('should call authService.refreshTokens and return result', async () => {
 			const mockRequest = {

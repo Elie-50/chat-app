@@ -9,19 +9,13 @@ export class User {
 		unique: true,
 		maxLength: 50,
 		minlength: 3,
-		required: false,
+		required: true,
 		index: true,
 	})
-	username?: string;
+	username: string;
 
-	@Prop({ unique: true, required: true, index: true })
-	email: string;
-
-	@Prop({ required: false })
-	verificationCode: string;
-
-	@Prop({ required: false })
-	verificationDue?: Date;
+	@Prop({ required: true })
+	password: string;
 
 	@Prop({ default: false })
 	isOnline: boolean;

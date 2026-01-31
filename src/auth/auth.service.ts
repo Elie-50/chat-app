@@ -1,19 +1,19 @@
 import {
+	BadRequestException,
 	Injectable,
-	InternalServerErrorException,
 	NotFoundException,
 	UnauthorizedException,
 } from '@nestjs/common';
-import { EmailService } from '../email/email.service';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
 import { UpdateUserDto } from '../users/dto/update-user.dto';
+import { AuthDto } from './dto/auth-dto';
+import * as bcrypt from 'bcrypt';
 
 export interface JwtPayload {
 	_id: string;
-	username?: string;
-	email: string;
+	username: string;
 }
 
 interface ExtendedJwtPayload extends JwtPayload {
@@ -24,39 +24,66 @@ interface ExtendedJwtPayload extends JwtPayload {
 @Injectable()
 export class AuthService {
 	constructor(
-		private readonly emailService: EmailService,
 		private readonly userService: UsersService,
 		private readonly jwtService: JwtService,
 	) {}
 
-	async requestCode(email: string) {
-		const user = await this.userService.findOrCreate(email);
+	async login(loginDto: AuthDto, res: Response) {
+		const user = await this.userService.findOneWithUsername(loginDto.username);
 
 		if (!user) {
-			throw new InternalServerErrorException('Unexpected Error Occured');
+			throw new BadRequestException('Invalid credentials');
 		}
-
-		await this.emailService.sendVerificationCode(user.verificationCode, email);
-
-		return { message: 'Email sent successfully' };
-	}
-
-	async verify(email: string, code: string, res: Response) {
-		const user = await this.userService.findByEmailAndVerify(email, code);
-
-		if (!user) {
-			throw new NotFoundException('No Account with the given email were found');
+		const validPassword = await bcrypt.compare(
+			loginDto.password,
+			user.password,
+		);
+		if (!validPassword) {
+			throw new BadRequestException('Invalid credentials');
 		}
 
 		const payload: JwtPayload = {
 			_id: user._id.toString(),
-			email: user.email,
 			username: user.username,
 		};
 
-		const { accessToken } = await this.generateTokens(payload, res);
+		const tokens = await this.generateTokens(payload, res);
 
-		return { user, accessToken };
+		return {
+			user: payload,
+			accessToken: tokens.accessToken,
+		};
+	}
+
+	async signUp(signupDto: AuthDto, res: Response) {
+		const user = await this.userService.findOneWithUsername(signupDto.username);
+
+		if (user) {
+			throw new BadRequestException('Username already exists');
+		}
+		const saltRounds = 10;
+		const salt = await bcrypt.genSalt(saltRounds);
+		const hashedPassword = await bcrypt.hash(signupDto.password, salt);
+		const newUser = await this.userService.create({
+			username: signupDto.username,
+			password: hashedPassword,
+		});
+
+		if (!newUser) {
+			throw new BadRequestException('Failed to create accoung');
+		}
+
+		const payload: JwtPayload = {
+			_id: newUser._id.toString(),
+			username: newUser.username,
+		};
+
+		const tokens = await this.generateTokens(payload, res);
+
+		return {
+			user: payload,
+			accessToken: tokens.accessToken,
+		};
 	}
 
 	async generateTokens(payload: JwtPayload, res: Response) {
@@ -133,9 +160,9 @@ export class AuthService {
 		if (!user) {
 			throw new NotFoundException('User not found');
 		}
-		const { _id, email, username } = user;
+		const { _id, username } = user;
 
-		const payload = { _id: _id.toString(), email, username };
+		const payload = { _id: _id.toString(), username };
 		const { accessToken } = await this.generateTokens(payload, res);
 
 		return { user: payload, accessToken };

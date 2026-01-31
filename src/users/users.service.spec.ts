@@ -2,8 +2,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Model, Types } from 'mongoose';
 import { UsersService } from './users.service';
-import { User, UserDocument } from './schemas/user.schema';
-import { CreateUserDto } from './dto/create-user.dto';
+import { User } from './schemas/user.schema';
 import { NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
@@ -16,10 +15,10 @@ const modelMock = {
 	countDocuments: jest.fn(),
 };
 
-const mockedUser: CreateUserDto = {
-	email: 'user@example.com',
-	verificationCode: '123456',
-	verificationDue: new Date(Date.now() + 2 * 3600 * 1000),
+const mockedUser: User = {
+	username: 'username',
+	password: 'password',
+	isOnline: true,
 };
 
 describe('UsersService', () => {
@@ -57,25 +56,24 @@ describe('UsersService', () => {
 		it('should insert a new user', async () => {
 			model.create.mockResolvedValueOnce(mockedUser as any);
 
-			const email = 'user@example.com';
-			const result = await service.create(email);
+			const result = await service.create(mockedUser);
 
 			expect(result).toEqual(mockedUser);
-			expect(model.create).toHaveBeenCalledWith({ email });
+			expect(model.create).toHaveBeenCalledWith(mockedUser);
 		});
 	});
 
-	describe('findOneWithEmail', () => {
+	describe('findOneWithUsername', () => {
 		it('should return one user', async () => {
 			model.findOne.mockReturnValueOnce({
 				exec: jest.fn().mockResolvedValueOnce(mockedUser),
 			} as any);
 
-			const email = 'email@example.com';
-			const result = await service.findOneWithEmail(email);
+			const username = 'username';
+			const result = await service.findOneWithUsername(username);
 
 			expect(result).toEqual(mockedUser);
-			expect(model.findOne).toHaveBeenCalledWith({ email: email });
+			expect(model.findOne).toHaveBeenCalledWith({ username: username });
 		});
 	});
 
@@ -126,140 +124,6 @@ describe('UsersService', () => {
 			const id = new Types.ObjectId().toString();
 			await expect(service.delete(id)).rejects.toThrow(NotFoundException);
 			expect(model.findByIdAndDelete).toHaveBeenCalledWith({ _id: id });
-		});
-	});
-
-	describe('findByEmailAndVerify', () => {
-		it('should verify user and clear verificationCode', async () => {
-			const id = new Types.ObjectId().toString();
-			const userMock = {
-				_id: id,
-				...mockedUser,
-				save: jest.fn().mockResolvedValueOnce(true),
-			};
-
-			model.findOne.mockResolvedValueOnce(userMock as any);
-
-			const result = await service.findByEmailAndVerify(
-				mockedUser.email,
-				mockedUser.verificationCode,
-			);
-
-			expect(model.findOne).toHaveBeenCalledWith({
-				email: mockedUser.email,
-				verificationCode: mockedUser.verificationCode,
-			});
-
-			expect(userMock.verificationCode).toBe('');
-			expect(userMock.save).toHaveBeenCalled();
-
-			const res = {
-				_id: id,
-				email: mockedUser.email,
-				username: undefined,
-			};
-
-			expect(result).toEqual(res);
-		});
-
-		it('should throw BadRequestException for invalid code', async () => {
-			model.findOne.mockResolvedValueOnce(null);
-
-			await expect(
-				service.findByEmailAndVerify('a@b.com', '000000'),
-			).rejects.toThrow('Invalid verification code');
-
-			expect(model.findOne).toHaveBeenCalledWith({
-				email: 'a@b.com',
-				verificationCode: '000000',
-			});
-		});
-
-		it('should throw if verification code is expired', async () => {
-			const expiredUser = {
-				_id: 'someId',
-				email: 'test@example.com',
-				verificationCode: '123456',
-				verificationDue: new Date(Date.now() - 3 * 3600 * 1000), // 3 hours ago
-				save: jest.fn(),
-			} as any;
-
-			model.findOne.mockResolvedValueOnce(expiredUser);
-
-			await expect(
-				service.findByEmailAndVerify(
-					expiredUser.email,
-					expiredUser.verificationCode,
-				),
-			).rejects.toThrow('Verification code has expired');
-		});
-	});
-
-	describe('findOrCreate', () => {
-		it('should return existing user and update verification fields', async () => {
-			const existingUser = {
-				...mockedUser,
-				save: jest.fn(),
-			};
-
-			jest
-				.spyOn(service, 'findOneWithEmail')
-				.mockResolvedValueOnce(existingUser as any);
-
-			jest
-				.spyOn<any, any>(service as any, 'generateRandomSixDigitNumber')
-				.mockReturnValue('111111');
-
-			const beforeCall = Date.now();
-
-			const result = await service.findOrCreate(existingUser.email);
-
-			expect(service.findOneWithEmail).toHaveBeenCalledWith(existingUser.email);
-
-			// create should NOT be called
-			expect(model.create).not.toHaveBeenCalled();
-
-			// verification fields updated
-			expect(existingUser.verificationCode).toBe('111111');
-			expect(existingUser.verificationDue.getTime()).toBeGreaterThan(
-				beforeCall,
-			);
-
-			// save must be called
-			expect(existingUser.save).toHaveBeenCalled();
-
-			expect(result).toBe(existingUser);
-		});
-
-		it('should create a new user when none exists', async () => {
-			jest.spyOn(service, 'findOneWithEmail').mockResolvedValueOnce(null);
-
-			const createdUser = {
-				...mockedUser,
-				save: jest.fn(),
-			} as unknown as UserDocument;
-
-			model.create.mockResolvedValueOnce(createdUser as any);
-
-			jest
-				.spyOn<any, any>(service as any, 'generateRandomSixDigitNumber')
-				.mockReturnValue('111111');
-
-			const beforeCall = Date.now();
-			const result = await service.findOrCreate(mockedUser.email);
-
-			expect(service.findOneWithEmail).toHaveBeenCalledWith(mockedUser.email);
-
-			expect(model.create).toHaveBeenCalledWith({ email: mockedUser.email });
-
-			expect(createdUser.verificationCode).toBe('111111');
-			expect(createdUser.verificationDue!.getTime()).toBeGreaterThan(
-				beforeCall,
-			);
-
-			expect(createdUser.save).toHaveBeenCalled();
-
-			expect(result).toEqual(createdUser);
 		});
 	});
 

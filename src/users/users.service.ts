@@ -1,14 +1,9 @@
-import {
-	BadRequestException,
-	Injectable,
-	InternalServerErrorException,
-	NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './schemas/user.schema';
 import { FilterQuery, Model, Types } from 'mongoose';
-import { JwtPayload } from '../auth/auth.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -16,8 +11,8 @@ export class UsersService {
 		@InjectModel(User.name) private readonly userModel: Model<User>,
 	) {}
 
-	async create(email: string): Promise<UserDocument | null> {
-		return this.userModel.create({ email });
+	async create(dto: CreateUserDto): Promise<UserDocument | null> {
+		return this.userModel.create(dto);
 	}
 
 	update(id: string, updateUserDto: UpdateUserDto) {
@@ -26,8 +21,8 @@ export class UsersService {
 			.exec();
 	}
 
-	async findOneWithEmail(email: string): Promise<UserDocument | null> {
-		const user = await this.userModel.findOne({ email: email }).exec();
+	async findOneWithUsername(username: string): Promise<UserDocument | null> {
+		const user = await this.userModel.findOne({ username: username }).exec();
 		return user;
 	}
 
@@ -39,52 +34,6 @@ export class UsersService {
 		}
 
 		return user;
-	}
-
-	async findByEmailAndVerify(
-		email: string,
-		verificationCode: string,
-	): Promise<JwtPayload> {
-		const user = await this.userModel.findOne({ email, verificationCode });
-
-		if (!user) {
-			throw new BadRequestException('Invalid verification code');
-		}
-
-		const now = new Date();
-		if (!user.verificationDue || user.verificationDue < now) {
-			throw new BadRequestException('Verification code has expired');
-		}
-
-		user.verificationCode = '';
-		user.verificationDue = undefined;
-		await user.save();
-
-		const { username, _id } = user;
-		return { username, email, _id: _id.toString() };
-	}
-
-	async findOrCreate(email: string): Promise<User> {
-		let user: UserDocument | null = await this.findOneWithEmail(email);
-
-		if (!user) {
-			user = await this.create(email);
-		}
-
-		if (!user) {
-			throw new InternalServerErrorException('Unexpected Error occured');
-		}
-
-		user.verificationCode = this.generateRandomSixDigitNumber();
-		user.verificationDue = new Date(Date.now() + 2 * 3600 * 1000);
-
-		await user.save();
-
-		return user;
-	}
-
-	private generateRandomSixDigitNumber(): string {
-		return (Math.floor(Math.random() * 900000) + 100000).toString();
 	}
 
 	async searchByUsername(

@@ -1,7 +1,19 @@
 {
-    "editor.tabSize": 2,
-    "editor.insertSpaces": false,
-    "editor.detectIndentation": true,
-    "prettier.useTabs": true,
-    "prettier.tabWidth": 2
+	"editor.tabSize": 2,
+	"editor.insertSpaces": false,
+	"editor.detectIndentation": false,
+	"editor.formatOnSave": true,
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"prettier.useTabs": true,
+	"prettier.tabWidth": 2,
+	"workbench.colorTheme": "Default Dark+",
+	"workbench.iconTheme": "vs-seti",
+	"window.title": "🧱 NestJS Backend — ${activeEditorShort}${separator}${rootName}",
+	"workbench.colorCustomizations": {
+		"statusBar.background": "#1f2937",
+		"statusBar.foreground": "#e5e7eb",
+		"statusBar.noFolderBackground": "#1f2937",
+		"statusBar.debuggingBackground": "#7c2d12"
+	},
+	"editor.semanticHighlighting.enabled": true
 }

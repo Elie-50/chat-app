@@ -13,28 +13,28 @@ import { AuthService } from './auth.service';
 import type { Response, Request } from 'express';
 import { type AuthenticatedRequest, AuthGuard } from './auth.guard';
 import { UpdateUserDto } from '../users/dto/update-user.dto';
+import { AuthDto } from './dto/auth-dto';
 
 @Controller('api/auth')
 export class AuthController {
 	constructor(private readonly authService: AuthService) {}
 
-	@Post('request-code')
-	requestCode(@Body() body: { email: string }) {
-		return this.authService.requestCode(body.email);
-	}
-
-	@Post('verify')
-	async verifyEmail(
-		@Body() body: { email: string; code: string },
+	@HttpCode(HttpStatus.CREATED)
+	@Post('sign-up')
+	async signUp(
+		@Body() body: AuthDto,
 		@Res({ passthrough: true }) res: Response,
 	) {
-		const { user, accessToken } = await this.authService.verify(
-			body.email,
-			body.code,
-			res,
-		);
+		return this.authService.signUp(body, res);
+	}
 
-		return { user, accessToken };
+	@HttpCode(HttpStatus.OK)
+	@Post('login')
+	async login(
+		@Body() body: AuthDto,
+		@Res({ passthrough: true }) res: Response,
+	) {
+		return this.authService.login(body, res);
 	}
 
 	@HttpCode(HttpStatus.OK)
