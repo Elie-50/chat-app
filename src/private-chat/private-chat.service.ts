@@ -53,6 +53,36 @@ export class PrivateChatService {
 		return conversation._id.toString();
 	}
 
+	async findOrCreateConversationAndReturnId(
+		senderId: string,
+		recipientId: string,
+	) {
+		const senderObjId = new Types.ObjectId(senderId);
+		const recipientObjId = new Types.ObjectId(recipientId);
+
+		const participants = [senderObjId, recipientObjId].sort();
+
+		let conversation = await this.conversationModel
+			.findOne({
+				participants: { $all: participants, $size: 2 },
+			})
+			.select('_id')
+			.lean();
+
+		if (!conversation) {
+			conversation = await this.conversationModel.create({
+				participants: participants,
+				type: 'dm',
+			});
+		}
+
+		if (!conversation) {
+			throw new BadRequestException('Unexpected Error Occurred');
+		}
+
+		return conversation._id.toString();
+	}
+
 	async create(senderId: string, dto: CreatePrivateMessageDto) {
 		const senderObjId = new Types.ObjectId(senderId);
 		const recipientObjId = new Types.ObjectId(dto.id);

@@ -6,8 +6,10 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Conversation } from './schemas/conversation.schema';
-import { Model, Types } from 'mongoose';
+import { Model, PipelineStage, Types } from 'mongoose';
 import { User } from '../users/schemas/user.schema';
+import { GetConversationsDto } from './dto/get-conversations.dto';
+import { FacetResult, PaginatedConversations } from './conversations.types';
 
 @Injectable()
 export class ConversationsService {
@@ -176,5 +178,91 @@ export class ConversationsService {
 		);
 
 		await conversation.save();
+	}
+
+	async getUserConversations(
+		userId: string,
+		dto: GetConversationsDto,
+	): Promise<PaginatedConversations> {
+		const { filter, page, limit } = dto;
+
+		const userObjectId = new Types.ObjectId(userId);
+		const skip = (page - 1) * limit;
+
+		const matchStage: PipelineStage.Match['$match'] = {
+			participants: userObjectId,
+			...(filter === 'groups' && { type: 'group' }),
+			...(filter === 'dms' && { type: 'dm' }),
+		};
+
+		const pipeline: PipelineStage[] = [
+			{ $match: matchStage },
+
+			{ $sort: { updatedAt: -1 } },
+
+			{
+				$addFields: {
+					otherUserId: {
+						$cond: [
+							{ $eq: ['$type', 'dm'] },
+							{
+								$first: {
+									$filter: {
+										input: '$participants',
+										as: 'p',
+										cond: { $ne: ['$$p', userObjectId] },
+									},
+								},
+							},
+							null,
+						],
+					},
+				},
+			},
+
+			{
+				$lookup: {
+					from: 'users',
+					localField: 'otherUserId',
+					foreignField: '_id',
+					as: 'otherUser',
+				},
+			},
+
+			{ $unwind: { path: '$otherUser', preserveNullAndEmptyArrays: true } },
+
+			{
+				$project: {
+					_id: 1,
+					type: 1,
+					updatedAt: 1,
+					name: {
+						$cond: [
+							{ $eq: ['$type', 'group'] },
+							'$name',
+							'$otherUser.username',
+						],
+					},
+				},
+			},
+
+			{
+				$facet: {
+					data: [{ $skip: skip }, { $limit: limit }],
+					total: [{ $count: 'count' }],
+				},
+			},
+		];
+
+		const [result] = await this.conversationModel
+			.aggregate<FacetResult>(pipeline)
+			.exec();
+
+		return {
+			data: result?.data ?? [],
+			total: result?.total[0]?.count ?? 0,
+			page,
+			limit,
+		};
 	}
 }

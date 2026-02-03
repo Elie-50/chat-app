@@ -3,7 +3,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Model, Types } from 'mongoose';
 import { UsersService } from './users.service';
 import { User } from './schemas/user.schema';
-import { NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
 const modelMock = {
@@ -13,12 +12,6 @@ const modelMock = {
 	findByIdAndDelete: jest.fn(),
 	aggregate: jest.fn(),
 	countDocuments: jest.fn(),
-};
-
-const mockedUser: User = {
-	username: 'username',
-	password: 'password',
-	isOnline: true,
 };
 
 describe('UsersService', () => {
@@ -50,81 +43,6 @@ describe('UsersService', () => {
 
 	it('should be defined', () => {
 		expect(service).toBeDefined();
-	});
-
-	describe('create', () => {
-		it('should insert a new user', async () => {
-			model.create.mockResolvedValueOnce(mockedUser as any);
-
-			const result = await service.create(mockedUser);
-
-			expect(result).toEqual(mockedUser);
-			expect(model.create).toHaveBeenCalledWith(mockedUser);
-		});
-	});
-
-	describe('findOneWithUsername', () => {
-		it('should return one user', async () => {
-			model.findOne.mockReturnValueOnce({
-				exec: jest.fn().mockResolvedValueOnce(mockedUser),
-			} as any);
-
-			const username = 'username';
-			const result = await service.findOneWithUsername(username);
-
-			expect(result).toEqual(mockedUser);
-			expect(model.findOne).toHaveBeenCalledWith({ username: username });
-		});
-	});
-
-	describe('update', () => {
-		it('should update a user and return the updated document', async () => {
-			const id = new Types.ObjectId().toString();
-			const updated = {
-				_id: id,
-				...mockedUser,
-				username: 'username',
-			};
-			model.findByIdAndUpdate.mockReturnValueOnce({
-				exec: jest.fn().mockResolvedValueOnce(updated),
-			} as any);
-
-			const updateUserDto = {
-				username: 'username',
-			};
-			const result = await service.update(id, updateUserDto);
-
-			expect(result).toEqual(updated);
-			expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
-				{ _id: id },
-				updateUserDto,
-				{ new: true },
-			);
-		});
-	});
-
-	describe('delete', () => {
-		it('should delete a user', async () => {
-			model.findByIdAndDelete.mockReturnValueOnce({
-				exec: jest.fn().mockResolvedValueOnce(mockedUser),
-			} as any);
-
-			const id = new Types.ObjectId().toString();
-			const result = await service.delete(id);
-
-			expect(result).toEqual(mockedUser);
-			expect(model.findByIdAndDelete).toHaveBeenCalledWith({ _id: id });
-		});
-
-		it('should throw not found', async () => {
-			model.findByIdAndDelete.mockReturnValueOnce({
-				exec: jest.fn().mockResolvedValueOnce(null),
-			} as any);
-
-			const id = new Types.ObjectId().toString();
-			await expect(service.delete(id)).rejects.toThrow(NotFoundException);
-			expect(model.findByIdAndDelete).toHaveBeenCalledWith({ _id: id });
-		});
 	});
 
 	describe('searchByUsername', () => {

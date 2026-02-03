@@ -159,10 +159,11 @@ export class PrivateChatGateway {
 				return;
 			}
 
-			const conversationId = await this.privateChatService.findConversationId(
-				user._id,
-				data.recipientId,
-			);
+			const conversationId =
+				await this.privateChatService.findOrCreateConversationAndReturnId(
+					user._id,
+					data.recipientId,
+				);
 
 			await client.join(`conversation:${conversationId}`);
 			this.server.to(`conversation:${conversationId}`).emit('user:joined', {});

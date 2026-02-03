@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+	BadRequestException,
+	Injectable,
+	NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './schemas/user.schema';
 import { FilterQuery, Model, Types } from 'mongoose';
@@ -15,15 +19,33 @@ export class UsersService {
 		return this.userModel.create(dto);
 	}
 
-	update(id: string, updateUserDto: UpdateUserDto) {
+	async update(id: string, dto: UpdateUserDto) {
+		if (dto.username) {
+			const otherUser = await this.findOneWithUsername(dto.username);
+			if (otherUser && otherUser._id.toString() != id) {
+				throw new BadRequestException('This username is taken');
+			}
+		}
 		return this.userModel
-			.findByIdAndUpdate({ _id: id }, updateUserDto, { new: true })
+			.findByIdAndUpdate({ _id: id }, dto, { new: true })
 			.exec();
 	}
 
+	async findOneWithUsernameOrEmail(
+		username: string,
+		email: string,
+	): Promise<UserDocument | null> {
+		return this.userModel.findOne({
+			$or: [{ username }, { email }],
+		});
+	}
+
+	async findOneWithEmail(email: string): Promise<UserDocument | null> {
+		return this.userModel.findOne({ email });
+	}
+
 	async findOneWithUsername(username: string): Promise<UserDocument | null> {
-		const user = await this.userModel.findOne({ username: username }).exec();
-		return user;
+		return this.userModel.findOne({ username });
 	}
 
 	async delete(id: string): Promise<User> {

@@ -8,8 +8,9 @@ import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
 import { UpdateUserDto } from '../users/dto/update-user.dto';
-import { AuthDto } from './dto/auth-dto';
 import * as bcrypt from 'bcrypt';
+import { LoginDto } from './dto/login-dto';
+import { SignupDto } from './dto/signup-dto';
 
 export interface JwtPayload {
 	_id: string;
@@ -28,16 +29,13 @@ export class AuthService {
 		private readonly jwtService: JwtService,
 	) {}
 
-	async login(loginDto: AuthDto, res: Response) {
-		const user = await this.userService.findOneWithUsername(loginDto.username);
+	async login(dto: LoginDto, res: Response) {
+		const user = await this.userService.findOneWithEmail(dto.email);
 
 		if (!user) {
 			throw new BadRequestException('Invalid credentials');
 		}
-		const validPassword = await bcrypt.compare(
-			loginDto.password,
-			user.password,
-		);
+		const validPassword = await bcrypt.compare(dto.password, user.password);
 		if (!validPassword) {
 			throw new BadRequestException('Invalid credentials');
 		}
@@ -55,17 +53,21 @@ export class AuthService {
 		};
 	}
 
-	async signUp(signupDto: AuthDto, res: Response) {
-		const user = await this.userService.findOneWithUsername(signupDto.username);
+	async signUp(dto: SignupDto, res: Response) {
+		const user = await this.userService.findOneWithUsernameOrEmail(
+			dto.username,
+			dto.email,
+		);
 
 		if (user) {
 			throw new BadRequestException('Username already exists');
 		}
 		const saltRounds = 10;
 		const salt = await bcrypt.genSalt(saltRounds);
-		const hashedPassword = await bcrypt.hash(signupDto.password, salt);
+		const hashedPassword = await bcrypt.hash(dto.password, salt);
 		const newUser = await this.userService.create({
-			username: signupDto.username,
+			username: dto.username,
+			email: dto.email,
 			password: hashedPassword,
 		});
 

@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { ConversationsService } from './conversations.service';
 import { type AuthenticatedRequest, AuthGuard } from '../auth/auth.guard';
+import { GetConversationsDto } from './dto/get-conversations.dto';
 
 @UseGuards(AuthGuard)
 @Controller('api/conversations')
@@ -27,13 +28,22 @@ export class ConversationsController {
 	}
 
 	@HttpCode(HttpStatus.OK)
-	@Get()
+	@Get('groups')
 	findAll(
 		@Req() req: AuthenticatedRequest,
 		@Query('page') page = 1,
 		@Query('size') size = 20,
 	) {
 		return this.conversationsService.findAll(req.user!._id, page, size);
+	}
+
+	@HttpCode(HttpStatus.OK)
+	@Get()
+	async getMyConversations(
+		@Req() req: AuthenticatedRequest,
+		@Query() query: GetConversationsDto,
+	) {
+		return this.conversationsService.getUserConversations(req.user!._id, query);
 	}
 
 	@HttpCode(HttpStatus.OK)

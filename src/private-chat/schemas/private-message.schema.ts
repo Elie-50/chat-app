@@ -26,3 +26,5 @@ export class PrivateMessage {
 
 export const PrivateMessageSchema =
 	SchemaFactory.createForClass(PrivateMessage);
+
+PrivateMessageSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 });

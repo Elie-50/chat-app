@@ -13,7 +13,8 @@ import { AuthService } from './auth.service';
 import type { Response, Request } from 'express';
 import { type AuthenticatedRequest, AuthGuard } from './auth.guard';
 import { UpdateUserDto } from '../users/dto/update-user.dto';
-import { AuthDto } from './dto/auth-dto';
+import { SignupDto } from './dto/signup-dto';
+import { LoginDto } from './dto/login-dto';
 
 @Controller('api/auth')
 export class AuthController {
@@ -22,7 +23,7 @@ export class AuthController {
 	@HttpCode(HttpStatus.CREATED)
 	@Post('sign-up')
 	async signUp(
-		@Body() body: AuthDto,
+		@Body() body: SignupDto,
 		@Res({ passthrough: true }) res: Response,
 	) {
 		return this.authService.signUp(body, res);
@@ -31,7 +32,7 @@ export class AuthController {
 	@HttpCode(HttpStatus.OK)
 	@Post('login')
 	async login(
-		@Body() body: AuthDto,
+		@Body() body: LoginDto,
 		@Res({ passthrough: true }) res: Response,
 	) {
 		return this.authService.login(body, res);
