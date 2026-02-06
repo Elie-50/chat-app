@@ -7,7 +7,15 @@ export class CreatePrivateMessageDto {
 
 	@IsNotEmpty()
 	@IsString()
-	content: string;
+	ciphertext: string;
+
+	@IsNotEmpty()
+	@IsString()
+	nonce: string;
+
+	@IsNotEmpty()
+	@IsString()
+	signature: string;
 
 	repliedTo?: string;
 }

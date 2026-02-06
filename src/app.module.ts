@@ -8,7 +8,6 @@ import { JwtModule } from '@nestjs/jwt';
 import { FollowModule } from './follow/follow.module';
 import { PrivateChatModule } from './private-chat/private-chat.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { GroupChatModule } from './group-chat/group-chat.module';
 import { ConversationsModule } from './conversations/conversations.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -61,7 +60,7 @@ const getURI = () => {
 		AuthModule,
 		FollowModule,
 		PrivateChatModule,
-		GroupChatModule,
+		// GroupChatModule, // Disabled for now
 		ConversationsModule,
 		NotificationsModule,
 		OnlineModule,

@@ -25,6 +25,12 @@ export class User {
 
 	@Prop({ required: false })
 	lastSeen?: Date;
+
+	@Prop({ required: false }) // Set to false because it is not set until user creates it on their device
+	identityPublicKey: string;
+
+	@Prop({ required: false })
+	exchangePublicKey: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

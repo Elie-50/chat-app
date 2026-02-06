@@ -10,15 +10,18 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Conversation } from '../conversations/schemas/conversation.schema';
 import { Model, Types } from 'mongoose';
 import { PrivateMessage } from './schemas/private-message.schema';
-import { User } from '../users/schemas/user.schema';
+import { User, UserDocument } from '../users/schemas/user.schema';
 
 type ReplyToSend = {
 	_id: string;
 	sender: {
 		_id: string;
 		username: string;
+		identityPublicKey: string;
 	};
-	content: string;
+	ciphertext: string;
+	nonce: string;
+	signature: string;
 	modification?: string;
 };
 
@@ -115,7 +118,7 @@ export class PrivateChatService {
 			replyObjId = new Types.ObjectId(dto.repliedTo);
 			const replyObj = await this.privateMessageModel
 				.findById(replyObjId)
-				.populate('sender', 'username');
+				.populate('sender', '_id username identityPublicKey');
 
 			if (!replyObj) {
 				reply = undefined;
@@ -123,11 +126,18 @@ export class PrivateChatService {
 				reply = {
 					_id: dto.repliedTo,
 					sender: {
-						_id: '',
+						_id:
+							(replyObj.sender as unknown as UserDocument)._id.toString() ||
+							'[Not Found]',
 						username:
 							(replyObj.sender as unknown as User).username || '[Not Found]',
+						identityPublicKey:
+							(replyObj.sender as unknown as User).identityPublicKey ||
+							'[Not Found]',
 					},
-					content: replyObj.content,
+					ciphertext: replyObj.ciphertext,
+					nonce: replyObj.nonce,
+					signature: replyObj.signature,
 					modification: replyObj.modification,
 				};
 			}
@@ -137,14 +147,24 @@ export class PrivateChatService {
 		const message = await this.privateMessageModel.create({
 			conversation: conversation._id,
 			sender: senderObjId,
-			content: dto.content,
+			ciphertext: dto.ciphertext,
+			signature: dto.signature,
+			nonce: dto.nonce,
 			reply: replyObjId,
 		});
 
+		const senderData = {
+			_id: sender._id.toString(),
+			username: sender.username,
+			identityPublicKey: sender.identityPublicKey,
+		};
+
 		const result = {
 			_id: message._id,
-			sender: sender.username,
-			content: message.content,
+			sender: senderData,
+			ciphertext: message.ciphertext,
+			nonce: message.nonce,
+			signature: message.signature,
 			createdAt: message.createdAt,
 			reply,
 		};
@@ -176,18 +196,28 @@ export class PrivateChatService {
 			throw new NotFoundException('User not found');
 		}
 
-		if (!dto.content) {
+		if (!dto.ciphertext || !dto.nonce || !dto.signature) {
 			throw new BadRequestException('Cannot leave empty messages');
 		}
 
-		message.content = dto.content;
+		message.ciphertext = dto.ciphertext;
+		message.nonce = dto.nonce;
+		message.signature = dto.signature;
 		message.modification = 'Edited';
 		await message.save();
 
+		const senderData = {
+			_id: sender._id.toString(),
+			username: sender.username,
+			identityPublicKey: sender.identityPublicKey,
+		};
+
 		const result = {
 			_id: message._id,
-			sender: sender.username,
-			content: message.content,
+			sender: senderData,
+			ciphertext: message.ciphertext,
+			nonce: message.nonce,
+			signature: message.signature,
 			modification: message.modification,
 		};
 
@@ -221,7 +251,6 @@ export class PrivateChatService {
 		const result = {
 			_id: message._id,
 			sender: sender.username,
-			content: message.content,
 			modification: message.modification,
 		};
 
@@ -250,25 +279,19 @@ export class PrivateChatService {
 				.sort({ createdAt: -1 })
 				.skip(skip)
 				.limit(limit)
-				.populate('sender', 'username')
+				.populate('sender', 'username identityPublicKey')
 				.populate({
 					path: 'reply',
-					select: '_id sender content modification',
-					populate: { path: 'sender', select: 'username' },
+					select: '_id sender ciphertext nonce signature modification',
+					populate: { path: 'sender', select: 'username identityPublicKey' },
 				})
 				.lean(),
 			this.privateMessageModel.countDocuments({
 				conversation: conversation._id,
 			}),
 		]);
-
-		const messagesWithSender = messages.map((message) => ({
-			...message,
-			sender: (message.sender as unknown as User).username,
-		}));
-
 		const data = {
-			data: messagesWithSender.reverse(),
+			data: messages.reverse(),
 			page,
 			size: limit,
 			total,

@@ -233,7 +233,6 @@ export class ConversationsService {
 
 			{
 				$project: {
-					_id: 1,
 					type: 1,
 					updatedAt: 1,
 					name: {
@@ -242,6 +241,9 @@ export class ConversationsService {
 							'$name',
 							'$otherUser.username',
 						],
+					},
+					_id: {
+						$cond: [{ $eq: ['$type', 'group'] }, '$_id', '$otherUser._id'],
 					},
 				},
 			},

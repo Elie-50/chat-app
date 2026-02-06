@@ -12,7 +12,13 @@ export class PrivateMessage {
 	sender: Types.ObjectId;
 
 	@Prop({ required: true })
-	content: string;
+	ciphertext: string;
+
+	@Prop({ required: true })
+	nonce: string;
+
+	@Prop({ required: true })
+	signature: string;
 
 	@Prop()
 	modification?: string;

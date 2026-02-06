@@ -11,6 +11,7 @@ import * as wsAuthGuard from '../auth/ws-auth.guard';
 import { HttpException, UseGuards } from '@nestjs/common';
 import { CreatePrivateMessageDto } from './dto/create-private-chat.dto';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { UpdatePrivateMessageDto } from './dto/update-private-chat.dto';
 
 @WebSocketGateway({
 	namespace: '/private-chat',
@@ -43,11 +44,7 @@ export class PrivateChatGateway {
 		try {
 			const { conversation, message } = await this.privateChatService.create(
 				sender._id,
-				{
-					id: data.id,
-					content: data.content,
-					repliedTo: data.repliedTo,
-				},
+				data,
 			);
 
 			// Emit message to all participants in the conversation
@@ -103,7 +100,8 @@ export class PrivateChatGateway {
 	@SubscribeMessage('update:private-message')
 	@UseGuards(wsAuthGuard.WsAuthGuard)
 	async handleUpdateMessage(
-		@MessageBody() data: { messageId: string; content: string },
+		@MessageBody()
+		data: { messageId: string; content: UpdatePrivateMessageDto },
 		@ConnectedSocket() client: wsAuthGuard.CustomSocket,
 	) {
 		const sender = client.data.payload;
@@ -111,9 +109,11 @@ export class PrivateChatGateway {
 
 		try {
 			const { message: updatedMessage, conversation } =
-				await this.privateChatService.update(sender._id, data.messageId, {
-					content: data.content,
-				});
+				await this.privateChatService.update(
+					sender._id,
+					data.messageId,
+					data.content,
+				);
 
 			this.server
 				.to(`conversation:${conversation._id.toString()}`)

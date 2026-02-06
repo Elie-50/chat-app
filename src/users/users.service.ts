@@ -9,6 +9,11 @@ import { FilterQuery, Model, Types } from 'mongoose';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 
+interface Keys {
+	identityPublicKey: string;
+	exchangePublicKey: string;
+}
+
 @Injectable()
 export class UsersService {
 	constructor(
@@ -46,6 +51,35 @@ export class UsersService {
 
 	async findOneWithUsername(username: string): Promise<UserDocument | null> {
 		return this.userModel.findOne({ username });
+	}
+
+	async findUsersKeys(userId: string) {
+		const userObjId = new Types.ObjectId(userId);
+		const user = await this.userModel
+			.findOne({ _id: userObjId })
+			.select('identityPublicKey exchangePublicKey');
+
+		if (!user) {
+			throw new NotFoundException('User not found');
+		}
+
+		return {
+			identityPublicKey: user.identityPublicKey,
+			exchangePublicKey: user.exchangePublicKey,
+		};
+	}
+
+	async storeKeys(userId: string, keys: Keys) {
+		return this.userModel.updateOne(
+			{
+				_id: userId,
+				identityPublicKey: { $exists: false },
+			},
+			{
+				identityPublicKey: keys.identityPublicKey,
+				exchangePublicKey: keys.exchangePublicKey,
+			},
+		);
 	}
 
 	async delete(id: string): Promise<User> {

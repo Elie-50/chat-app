@@ -1,4 +1,14 @@
-import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
+import {
+	Body,
+	Controller,
+	Get,
+	Header,
+	Param,
+	Post,
+	Query,
+	Req,
+	UseGuards,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { type AuthenticatedRequest, AuthGuard } from '../auth/auth.guard';
 
@@ -25,5 +35,23 @@ export class UsersController {
 	@Get(':userId')
 	findOne(@Param('userId') userId: string) {
 		return this.usersService.findOne(userId);
+	}
+
+	@Header('Cache-Control', 'public, max-age=31536000, immutable')
+	@Get(':userId/public-keys')
+	findUsersKeys(@Param('userId') userId: string) {
+		return this.usersService.findUsersKeys(userId);
+	}
+
+	@Post('keys')
+	async uploadKeys(
+		@Req() req: AuthenticatedRequest,
+		@Body()
+		body: {
+			identityPublicKey: string;
+			exchangePublicKey: string;
+		},
+	) {
+		return this.usersService.storeKeys(req.user!._id, body);
 	}
 }
