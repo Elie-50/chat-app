@@ -5,16 +5,16 @@ export type ConversationDocument = HydratedDocument<Conversation>;
 
 @Schema({ timestamps: true })
 export class Conversation {
-	@Prop({ maxLength: 50, minLength: 2 })
+	@Prop({ maxLength: 50, minLength: 2, index: true })
 	name?: string;
 
 	@Prop({ type: [Types.ObjectId], ref: 'User', required: true })
 	participants: Types.ObjectId[];
 
-	@Prop({ default: 'dm' })
+	@Prop({ default: 'dm', index: true })
 	type: string;
 
-	@Prop({ type: Types.ObjectId, ref: 'User' })
+	@Prop({ type: Types.ObjectId, ref: 'User', index: true })
 	admin?: Types.ObjectId;
 }
 

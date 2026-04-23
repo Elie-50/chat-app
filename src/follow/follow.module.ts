@@ -1,15 +1,17 @@
 import { Module } from '@nestjs/common';
-import { FollowService } from './follow.service';
-import { FollowController } from './follow.controller';
 import { MongooseModule } from '@nestjs/mongoose';
-import { UserSchema } from '../users/schemas/user.schema';
-import { FollowSchema } from './schemas/follow.schema';
+import { User, UserSchema } from '../users/schemas/user.schema';
+import { FollowController } from './follow.controller';
+import { FollowService } from './follow.service';
+import { Follow, FollowSchema } from './schemas/follow.schema';
 
 @Module({
 	controllers: [FollowController],
 	imports: [
-		MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
-		MongooseModule.forFeature([{ name: 'Follow', schema: FollowSchema }]),
+		MongooseModule.forFeature([
+			{ name: User.name, schema: UserSchema },
+			{ name: Follow.name, schema: FollowSchema },
+		]),
 	],
 	providers: [FollowService],
 })

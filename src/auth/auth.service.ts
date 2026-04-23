@@ -1,14 +1,18 @@
 import {
 	BadRequestException,
+	Inject,
 	Injectable,
 	NotFoundException,
 	UnauthorizedException,
 } from '@nestjs/common';
-import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
-import { Request, Response } from 'express';
-import { UpdateUserDto } from '../users/dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
+import { Request, Response } from 'express';
+import Redis from 'ioredis';
+import { MailService } from 'src/mail/mail.service';
+import { REDIS_CLIENT } from 'src/redis/redis.module';
+import { UpdateUserDto } from '../users/dto/update-user.dto';
+import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login-dto';
 import { SignupDto } from './dto/signup-dto';
 
@@ -27,7 +31,56 @@ export class AuthService {
 	constructor(
 		private readonly userService: UsersService,
 		private readonly jwtService: JwtService,
+		private readonly mailService: MailService,
+		@Inject(REDIS_CLIENT) private readonly redis: Redis,
 	) {}
+
+	/** Saves a code and link it to a user in redis store to authenticate via email */
+	async requestCode(email: string) {
+		const user = await this.userService.findOrCreateWithEmail(email);
+
+		const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+		const hashedOtp = await bcrypt.hash(code, 10);
+
+		await this.redis.set(`otp:${user._id.toString()}`, hashedOtp, 'EX', 600);
+
+		await this.mailService.sendOtp(email, code);
+
+		return { message: 'OTP sent successfully' };
+	}
+
+	/** Verify a user code from the redis store */
+	async verifyCode(email: string, code: string, res: Response) {
+		const user = await this.userService.findOneWithEmail(email);
+		if (!user) {
+			throw new UnauthorizedException('Invalid credentials');
+		}
+
+		const storedOtp = await this.redis.get(`otp:${user._id.toString()}`);
+		if (!storedOtp) {
+			throw new UnauthorizedException('OTP expired');
+		}
+
+		const isValid = await bcrypt.compare(code, storedOtp);
+		if (!isValid) {
+			throw new UnauthorizedException('Invalid OTP');
+		}
+
+		await this.redis.del(`otp:${user._id.toString()}`);
+
+		const payload = {
+			_id: user._id.toString(),
+			username: user.username,
+		};
+
+		const tokens = await this.generateTokens(payload, res);
+
+		return {
+			user: payload,
+			accessToken: tokens.accessToken,
+		};
+	}
 
 	async login(dto: LoginDto, res: Response) {
 		const user = await this.userService.findOneWithEmail(dto.email);

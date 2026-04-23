@@ -9,15 +9,14 @@ export class User {
 		unique: true,
 		maxLength: 50,
 		minlength: 3,
-		required: true,
 		index: true,
 	})
 	username: string;
 
-	@Prop({ unique: true, required: true })
+	@Prop({ unique: true, required: true, index: true })
 	email: string;
 
-	@Prop({ required: true })
+	@Prop({})
 	password: string;
 
 	@Prop({ default: false })
@@ -26,7 +25,7 @@ export class User {
 	@Prop({ required: false })
 	lastSeen?: Date;
 
-	@Prop({ required: false }) // Set to false because it is not set until user creates it on their device
+	@Prop({ required: false })
 	identityPublicKey: string;
 
 	@Prop({ required: false })

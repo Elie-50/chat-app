@@ -1,29 +1,28 @@
-import { SchemaFactory, Prop, Schema } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 
 export type PrivateMessageDocument = HydratedDocument<PrivateMessage>;
 
 @Schema({ timestamps: true })
 export class PrivateMessage {
-	@Prop({ type: Types.ObjectId, ref: 'Conversation', required: true })
+	@Prop({
+		type: Types.ObjectId,
+		ref: 'Conversation',
+		required: true,
+		index: true,
+	})
 	conversation: Types.ObjectId;
 
-	@Prop({ type: Types.ObjectId, ref: 'User', required: true })
+	@Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
 	sender: Types.ObjectId;
 
 	@Prop({ required: true })
-	ciphertext: string;
-
-	@Prop({ required: true })
-	nonce: string;
-
-	@Prop({ required: true })
-	signature: string;
+	content: string;
 
 	@Prop()
 	modification?: string;
 
-	@Prop({ type: Types.ObjectId, ref: 'PrivateMessage' })
+	@Prop({ type: Types.ObjectId, ref: 'PrivateMessage', index: true })
 	reply?: Types.ObjectId;
 
 	createdAt: Date;
@@ -32,5 +31,3 @@ export class PrivateMessage {
 
 export const PrivateMessageSchema =
 	SchemaFactory.createForClass(PrivateMessage);
-
-PrivateMessageSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 });

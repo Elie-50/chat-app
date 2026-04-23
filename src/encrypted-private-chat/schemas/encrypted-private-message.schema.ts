@@ -1,10 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 
-export type GroupMessageDocument = HydratedDocument<GroupMessage>;
+export type EncryptedPrivateMessageDocument =
+	HydratedDocument<EncryptedPrivateMessage>;
 
 @Schema({ timestamps: true })
-export class GroupMessage {
+export class EncryptedPrivateMessage {
 	@Prop({
 		type: Types.ObjectId,
 		ref: 'Conversation',
@@ -17,16 +18,24 @@ export class GroupMessage {
 	sender: Types.ObjectId;
 
 	@Prop({ required: true })
-	content: string;
+	ciphertext: string;
+
+	@Prop({ required: true })
+	nonce: string;
+
+	@Prop({ required: true })
+	signature: string;
 
 	@Prop()
 	modification?: string;
 
-	@Prop({ type: Types.ObjectId, ref: 'GroupMessage', index: true })
+	@Prop({ type: Types.ObjectId, ref: 'PrivateMessage', index: true })
 	reply?: Types.ObjectId;
 
 	createdAt: Date;
 	updatedAt: Date;
 }
 
-export const GroupMessageSchema = SchemaFactory.createForClass(GroupMessage);
+export const EncryptedPrivateMessageSchema = SchemaFactory.createForClass(
+	EncryptedPrivateMessage,
+);

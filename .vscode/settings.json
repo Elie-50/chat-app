@@ -6,7 +6,7 @@
 	"editor.defaultFormatter": "esbenp.prettier-vscode",
 	"prettier.useTabs": true,
 	"prettier.tabWidth": 2,
-	"workbench.colorTheme": "Default Dark+",
+	"workbench.colorTheme": "Dark+",
 	"workbench.iconTheme": "vs-seti",
 	"window.title": "🧱 NestJS Backend — ${activeEditorShort}${separator}${rootName}",
 	"workbench.colorCustomizations": {

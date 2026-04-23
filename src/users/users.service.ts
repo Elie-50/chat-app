@@ -4,10 +4,10 @@ import {
 	NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { User, UserDocument } from './schemas/user.schema';
 import { FilterQuery, Model, Types } from 'mongoose';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { User, UserDocument } from './schemas/user.schema';
 
 interface Keys {
 	identityPublicKey: string;
@@ -47,6 +47,16 @@ export class UsersService {
 
 	async findOneWithEmail(email: string): Promise<UserDocument | null> {
 		return this.userModel.findOne({ email });
+	}
+
+	async findOrCreateWithEmail(email: string): Promise<UserDocument> {
+		let user = await this.userModel.findOne({ email });
+
+		if (user === null) {
+			user = await this.userModel.create({ email });
+		}
+
+		return user;
 	}
 
 	async findOneWithUsername(username: string): Promise<UserDocument | null> {

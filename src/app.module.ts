@@ -1,33 +1,20 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
-import * as path from 'path';
-import { UsersModule } from './users/users.module';
-import { AuthModule } from './auth/auth.module';
-import { JwtModule } from '@nestjs/jwt';
-import { FollowModule } from './follow/follow.module';
-import { PrivateChatModule } from './private-chat/private-chat.module';
-import { ServeStaticModule } from '@nestjs/serve-static';
-import { ConversationsModule } from './conversations/conversations.module';
-import { NotificationsModule } from './notifications/notifications.module';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { JwtModule } from '@nestjs/jwt';
+import { MongooseModule } from '@nestjs/mongoose';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AuthModule } from './auth/auth.module';
+import { ConversationsModule } from './conversations/conversations.module';
+import { FollowModule } from './follow/follow.module';
+import { MailModule } from './mail/mail.module';
 import { NoThrottlerGuard } from './no-throttler.guard';
+import { NotificationsModule } from './notifications/notifications.module';
 import { OnlineModule } from './online/online.module';
-
-const getURI = () => {
-	const dbURI =
-		process.env.NODE_ENV !== 'test'
-			? process.env.MONGO_URI
-			: process.env.MONGO_TEST_URI;
-
-	if (!dbURI) {
-		console.error('No DB credentials found');
-		process.exit(1);
-	}
-
-	return dbURI;
-};
+import { RedisModule } from './redis/redis.module';
+import { UsersModule } from './users/users.module';
+import { GroupChatModule } from './group-chat/group-chat.module';
+import { PrivateChatModule } from './private-chat/private-chat.module';
 
 @Module({
 	imports: [
@@ -39,31 +26,39 @@ const getURI = () => {
 				},
 			],
 		}),
-		ServeStaticModule.forRoot({
-			rootPath: path.join(__dirname, '..', 'client'),
-			exclude: ['/api/{*test}'],
-			serveStaticOptions: {
-				fallthrough: true,
-			},
-		}),
 		ConfigModule.forRoot({
 			isGlobal: true,
-			envFilePath: '.env',
+			envFilePath: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
 		}),
-		MongooseModule.forRoot(getURI()),
-		JwtModule.register({
-			global: true,
-			secret: process.env.JWT_SECRET,
-			signOptions: { expiresIn: '15m' },
+		MongooseModule.forRootAsync({
+			imports: [ConfigModule],
+			inject: [ConfigService],
+			useFactory: (config: ConfigService) => ({
+				uri: config.get<string>('MONGO_URI'),
+			}),
+		}),
+		JwtModule.registerAsync({
+			imports: [ConfigModule],
+			inject: [ConfigService],
+			useFactory: (config: ConfigService) => ({
+				global: true,
+				secret: config.get<string>('JWT_SECRET'),
+				signOptions: {
+					expiresIn: '15m',
+				},
+			}),
 		}),
 		UsersModule,
 		AuthModule,
 		FollowModule,
+		// EncryptedPrivateChatModule,
 		PrivateChatModule,
-		// GroupChatModule, // Disabled for now
+		GroupChatModule,
 		ConversationsModule,
 		NotificationsModule,
 		OnlineModule,
+		RedisModule,
+		MailModule,
 	],
 	controllers: [],
 	providers: [

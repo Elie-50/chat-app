@@ -9,12 +9,14 @@ import {
 	Res,
 	UseGuards,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import type { Response, Request } from 'express';
-import { type AuthenticatedRequest, AuthGuard } from './auth.guard';
+import type { Request, Response } from 'express';
 import { UpdateUserDto } from '../users/dto/update-user.dto';
-import { SignupDto } from './dto/signup-dto';
+import { type AuthenticatedRequest, AuthGuard } from './auth.guard';
+import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login-dto';
+import { RequestCodeDto } from './dto/request-code.dto';
+import { SignupDto } from './dto/signup-dto';
+import { VerifyCodeDto } from './dto/verify-code.dto';
 
 @Controller('api/auth')
 export class AuthController {
@@ -27,6 +29,21 @@ export class AuthController {
 		@Res({ passthrough: true }) res: Response,
 	) {
 		return this.authService.signUp(body, res);
+	}
+
+	@HttpCode(HttpStatus.OK)
+	@Post('request-code')
+	async requestCode(@Body() body: RequestCodeDto) {
+		return this.authService.requestCode(body.email);
+	}
+
+	@HttpCode(HttpStatus.OK)
+	@Post('verify-code')
+	async verifyCode(
+		@Body() body: VerifyCodeDto,
+		@Res({ passthrough: true }) res: Response,
+	) {
+		return this.authService.verifyCode(body.email, body.code, res);
 	}
 
 	@HttpCode(HttpStatus.OK)

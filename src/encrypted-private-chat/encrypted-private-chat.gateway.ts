@@ -1,20 +1,20 @@
+import { HttpException, UseGuards } from '@nestjs/common';
 import {
-	WebSocketGateway,
-	SubscribeMessage,
-	MessageBody,
-	WebSocketServer,
 	ConnectedSocket,
+	MessageBody,
+	SubscribeMessage,
+	WebSocketGateway,
+	WebSocketServer,
 } from '@nestjs/websockets';
-import { PrivateChatService } from './private-chat.service';
 import { Server } from 'socket.io';
 import * as wsAuthGuard from '../auth/ws-auth.guard';
-import { HttpException, UseGuards } from '@nestjs/common';
-import { CreatePrivateMessageDto } from './dto/create-private-chat.dto';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
-import { UpdatePrivateMessageDto } from './dto/update-private-chat.dto';
+import { CreateEncryptedPrivateMessageDto } from './dto/create-encrypted-private-chat.dto';
+import { UpdateEncryptedPrivateMessageDto } from './dto/update-encrypted-private-chat.dto';
+import { EncryptedPrivateChatService } from './encrypted-private-chat.service';
 
 @WebSocketGateway({
-	namespace: '/encrypted-private-chat',
+	namespace: '/private-chat',
 	cors: {
 		origin: 'http://localhost:5173',
 		methods: ['GET', 'POST'],
@@ -22,9 +22,9 @@ import { UpdatePrivateMessageDto } from './dto/update-private-chat.dto';
 		credentials: true,
 	},
 })
-export class PrivateChatGateway {
+export class EncryptedPrivateChatGateway {
 	constructor(
-		private readonly privateChatService: PrivateChatService,
+		private readonly encryptedPrivateChatService: EncryptedPrivateChatService,
 		private readonly notificationGateway: NotificationsGateway,
 	) {}
 
@@ -35,17 +35,15 @@ export class PrivateChatGateway {
 	@SubscribeMessage('send:private-message')
 	@UseGuards(wsAuthGuard.WsAuthGuard)
 	async handleSendMessage(
-		@MessageBody() data: CreatePrivateMessageDto,
+		@MessageBody() data: CreateEncryptedPrivateMessageDto,
 		@ConnectedSocket() client: wsAuthGuard.CustomSocket,
 	) {
 		const sender = client.data.payload;
 		if (!sender) return;
 
 		try {
-			const { conversation, message } = await this.privateChatService.create(
-				sender._id,
-				data,
-			);
+			const { conversation, message } =
+				await this.encryptedPrivateChatService.create(sender._id, data);
 
 			// Emit message to all participants in the conversation
 			this.server
@@ -79,7 +77,7 @@ export class PrivateChatGateway {
 
 		try {
 			const { messages: result, conversation } =
-				await this.privateChatService.findAll(
+				await this.encryptedPrivateChatService.findAll(
 					sender._id,
 					data.recipientId,
 					data.page || 1,
@@ -101,7 +99,7 @@ export class PrivateChatGateway {
 	@UseGuards(wsAuthGuard.WsAuthGuard)
 	async handleUpdateMessage(
 		@MessageBody()
-		data: { messageId: string; content: UpdatePrivateMessageDto },
+		data: { messageId: string; content: UpdateEncryptedPrivateMessageDto },
 		@ConnectedSocket() client: wsAuthGuard.CustomSocket,
 	) {
 		const sender = client.data.payload;
@@ -109,7 +107,7 @@ export class PrivateChatGateway {
 
 		try {
 			const { message: updatedMessage, conversation } =
-				await this.privateChatService.update(
+				await this.encryptedPrivateChatService.update(
 					sender._id,
 					data.messageId,
 					data.content,
@@ -136,7 +134,10 @@ export class PrivateChatGateway {
 
 		try {
 			const { message: deletedMessage, conversation } =
-				await this.privateChatService.remove(sender._id, data.messageId);
+				await this.encryptedPrivateChatService.remove(
+					sender._id,
+					data.messageId,
+				);
 
 			this.server
 				.to(`conversation:${conversation._id.toString()}`)
@@ -160,7 +161,7 @@ export class PrivateChatGateway {
 			}
 
 			const conversationId =
-				await this.privateChatService.findOrCreateConversationAndReturnId(
+				await this.encryptedPrivateChatService.findOrCreateConversationAndReturnId(
 					user._id,
 					data.recipientId,
 				);
@@ -185,10 +186,11 @@ export class PrivateChatGateway {
 				return;
 			}
 
-			const conversationId = await this.privateChatService.findConversationId(
-				user._id,
-				data.recipientId,
-			);
+			const conversationId =
+				await this.encryptedPrivateChatService.findConversationId(
+					user._id,
+					data.recipientId,
+				);
 
 			this.server.to(`conversation:${conversationId}`).emit('typing:update', {
 				_id: user._id,
@@ -212,10 +214,11 @@ export class PrivateChatGateway {
 			if (!user) {
 				return;
 			}
-			const conversationId = await this.privateChatService.findConversationId(
-				user._id,
-				data.recipientId,
-			);
+			const conversationId =
+				await this.encryptedPrivateChatService.findConversationId(
+					user._id,
+					data.recipientId,
+				);
 
 			this.server
 				.to(`conversation:${conversationId}`)

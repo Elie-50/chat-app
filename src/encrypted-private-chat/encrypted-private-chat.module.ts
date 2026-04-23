@@ -6,22 +6,25 @@ import {
 } from '../conversations/schemas/conversation.schema';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { User, UserSchema } from '../users/schemas/user.schema';
-import { PrivateChatGateway } from './private-chat.gateway';
-import { PrivateChatService } from './private-chat.service';
+import { EncryptedPrivateChatGateway } from './encrypted-private-chat.gateway';
+import { EncryptedPrivateChatService } from './encrypted-private-chat.service';
 import {
-	PrivateMessage,
-	PrivateMessageSchema,
-} from './schemas/private-message.schema';
+	EncryptedPrivateMessage,
+	EncryptedPrivateMessageSchema,
+} from './schemas/encrypted-private-message.schema';
 
 @Module({
-	providers: [PrivateChatGateway, PrivateChatService],
+	providers: [EncryptedPrivateChatGateway, EncryptedPrivateChatService],
 	imports: [
 		MongooseModule.forFeature([
 			{ name: Conversation.name, schema: ConversationSchema },
-			{ name: PrivateMessage.name, schema: PrivateMessageSchema },
+			{
+				name: EncryptedPrivateMessage.name,
+				schema: EncryptedPrivateMessageSchema,
+			},
 			{ name: User.name, schema: UserSchema },
 		]),
 		NotificationsModule,
 	],
 })
-export class PrivateChatModule {}
+export class EncryptedPrivateChatModule {}

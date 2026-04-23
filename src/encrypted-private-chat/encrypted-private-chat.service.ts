@@ -4,31 +4,34 @@ import {
 	Injectable,
 	NotFoundException,
 } from '@nestjs/common';
-import { CreatePrivateMessageDto } from './dto/create-private-chat.dto';
-import { UpdatePrivateMessageDto } from './dto/update-private-chat.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Conversation } from '../conversations/schemas/conversation.schema';
 import { Model, Types } from 'mongoose';
-import { PrivateMessage } from './schemas/private-message.schema';
+import { Conversation } from '../conversations/schemas/conversation.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
+import { CreateEncryptedPrivateMessageDto } from './dto/create-encrypted-private-chat.dto';
+import { UpdateEncryptedPrivateMessageDto } from './dto/update-encrypted-private-chat.dto';
+import { EncryptedPrivateMessage } from './schemas/encrypted-private-message.schema';
 
 type ReplyToSend = {
 	_id: string;
 	sender: {
 		_id: string;
 		username: string;
+		identityPublicKey: string;
 	};
-	content: string;
+	ciphertext: string;
+	nonce: string;
+	signature: string;
 	modification?: string;
 };
 
 @Injectable()
-export class PrivateChatService {
+export class EncryptedPrivateChatService {
 	constructor(
 		@InjectModel(Conversation.name)
 		private readonly conversationModel: Model<Conversation>,
-		@InjectModel(PrivateMessage.name)
-		private readonly privateMessageModel: Model<PrivateMessage>,
+		@InjectModel(EncryptedPrivateMessage.name)
+		private readonly encryptedprivateMessageModel: Model<EncryptedPrivateMessage>,
 		@InjectModel(User.name)
 		private readonly userModel: Model<User>,
 	) {}
@@ -83,7 +86,7 @@ export class PrivateChatService {
 		return conversation._id.toString();
 	}
 
-	async create(senderId: string, dto: CreatePrivateMessageDto) {
+	async create(senderId: string, dto: CreateEncryptedPrivateMessageDto) {
 		const senderObjId = new Types.ObjectId(senderId);
 		const recipientObjId = new Types.ObjectId(dto.id);
 
@@ -113,7 +116,7 @@ export class PrivateChatService {
 		let reply: ReplyToSend | undefined;
 		if (dto.repliedTo) {
 			replyObjId = new Types.ObjectId(dto.repliedTo);
-			const replyObj = await this.privateMessageModel
+			const replyObj = await this.encryptedprivateMessageModel
 				.findById(replyObjId)
 				.populate('sender', '_id username identityPublicKey');
 
@@ -128,18 +131,25 @@ export class PrivateChatService {
 							'[Not Found]',
 						username:
 							(replyObj.sender as unknown as User).username || '[Not Found]',
+						identityPublicKey:
+							(replyObj.sender as unknown as User).identityPublicKey ||
+							'[Not Found]',
 					},
-					content: replyObj.content,
+					ciphertext: replyObj.ciphertext,
+					nonce: replyObj.nonce,
+					signature: replyObj.signature,
 					modification: replyObj.modification,
 				};
 			}
 		}
 
 		// Save message
-		const message = await this.privateMessageModel.create({
+		const message = await this.encryptedprivateMessageModel.create({
 			conversation: conversation._id,
 			sender: senderObjId,
-			content: dto.content,
+			ciphertext: dto.ciphertext,
+			signature: dto.signature,
+			nonce: dto.nonce,
 			reply: replyObjId,
 		});
 
@@ -152,7 +162,9 @@ export class PrivateChatService {
 		const result = {
 			_id: message._id,
 			sender: senderData,
-			content: message.content,
+			ciphertext: message.ciphertext,
+			nonce: message.nonce,
+			signature: message.signature,
 			createdAt: message.createdAt,
 			reply,
 		};
@@ -163,9 +175,9 @@ export class PrivateChatService {
 	async update(
 		senderId: string,
 		messageId: string,
-		dto: UpdatePrivateMessageDto,
+		dto: UpdateEncryptedPrivateMessageDto,
 	) {
-		const message = await this.privateMessageModel.findById(messageId);
+		const message = await this.encryptedprivateMessageModel.findById(messageId);
 		if (!message) throw new NotFoundException('Message not found');
 
 		// Check conversation exists
@@ -184,11 +196,13 @@ export class PrivateChatService {
 			throw new NotFoundException('User not found');
 		}
 
-		if (!dto.content) {
+		if (!dto.ciphertext || !dto.nonce || !dto.signature) {
 			throw new BadRequestException('Cannot leave empty messages');
 		}
 
-		message.content = dto.content;
+		message.ciphertext = dto.ciphertext;
+		message.nonce = dto.nonce;
+		message.signature = dto.signature;
 		message.modification = 'Edited';
 		await message.save();
 
@@ -201,7 +215,9 @@ export class PrivateChatService {
 		const result = {
 			_id: message._id,
 			sender: senderData,
-			content: message.content,
+			ciphertext: message.ciphertext,
+			nonce: message.nonce,
+			signature: message.signature,
 			modification: message.modification,
 		};
 
@@ -209,7 +225,7 @@ export class PrivateChatService {
 	}
 
 	async remove(senderId: string, messageId: string) {
-		const message = await this.privateMessageModel.findById(messageId);
+		const message = await this.encryptedprivateMessageModel.findById(messageId);
 		if (!message) throw new NotFoundException('Message not found');
 
 		// Check conversation exists
@@ -229,7 +245,7 @@ export class PrivateChatService {
 			throw new NotFoundException('User not found');
 		}
 
-		// await this.privateMessageModel.findByIdAndDelete(message._id);
+		// await this.encryptedprivateMessageModel.findByIdAndDelete(message._id);
 		message.modification = 'Deleted';
 		await message.save();
 		const result = {
@@ -258,19 +274,19 @@ export class PrivateChatService {
 		const skip = (page - 1) * limit;
 
 		const [messages, total] = await Promise.all([
-			this.privateMessageModel
+			this.encryptedprivateMessageModel
 				.find({ conversation: conversation._id })
 				.sort({ createdAt: -1 })
 				.skip(skip)
 				.limit(limit)
-				.populate('sender', 'username')
+				.populate('sender', 'username identityPublicKey')
 				.populate({
 					path: 'reply',
-					select: '_id sender content modification',
-					populate: { path: 'sender', select: 'username' },
+					select: '_id sender ciphertext nonce signature modification',
+					populate: { path: 'sender', select: 'username identityPublicKey' },
 				})
 				.lean(),
-			this.privateMessageModel.countDocuments({
+			this.encryptedprivateMessageModel.countDocuments({
 				conversation: conversation._id,
 			}),
 		]);
