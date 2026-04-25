@@ -79,6 +79,7 @@ export class AuthService {
 		return {
 			user: payload,
 			accessToken: tokens.accessToken,
+			refreshToken: tokens.refreshToken,
 		};
 	}
 
@@ -103,6 +104,7 @@ export class AuthService {
 		return {
 			user: payload,
 			accessToken: tokens.accessToken,
+			refreshToken: tokens.refreshToken,
 		};
 	}
 
@@ -138,6 +140,7 @@ export class AuthService {
 		return {
 			user: payload,
 			accessToken: tokens.accessToken,
+			refreshToken: tokens.refreshToken,
 		};
 	}
 
@@ -160,11 +163,12 @@ export class AuthService {
 			maxAge: 7 * 24 * 60 * 60 * 1000,
 		});
 
-		return { accessToken };
+		return { accessToken, refreshToken };
 	}
 
-	async refreshTokens(req: Request, res: Response) {
-		const refreshToken = req.cookies?.['refresh_token'] as string | undefined;
+	async refreshTokens(req: Request, res: Response, refreshTkn?: string) {
+		const refreshToken =
+			refreshTkn ?? (req.cookies?.['refresh_token'] as string | undefined);
 
 		if (!refreshToken) {
 			throw new UnauthorizedException('No refresh token found');
@@ -186,9 +190,14 @@ export class AuthService {
 				throw new UnauthorizedException('Account does not exist');
 			}
 
-			const { accessToken } = await this.generateTokens(cleanPayload, res);
+			const { accessToken, refreshToken: newRefreshToken } =
+				await this.generateTokens(cleanPayload, res);
 
-			return { accessToken, user: cleanPayload as JwtPayload };
+			return {
+				accessToken,
+				user: cleanPayload as JwtPayload,
+				refreshToken: newRefreshToken,
+			};
 		} catch {
 			throw new UnauthorizedException('Invalid refresh token');
 		}

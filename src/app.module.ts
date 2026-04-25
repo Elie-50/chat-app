@@ -37,16 +37,12 @@ import { PrivateChatModule } from './private-chat/private-chat.module';
 				uri: config.get<string>('MONGO_URI'),
 			}),
 		}),
-		JwtModule.registerAsync({
-			imports: [ConfigModule],
-			inject: [ConfigService],
-			useFactory: (config: ConfigService) => ({
-				global: true,
-				secret: config.get<string>('JWT_SECRET'),
-				signOptions: {
-					expiresIn: '15m',
-				},
-			}),
+		JwtModule.register({
+			global: true,
+			secret: process.env.JWT_SECRET,
+			signOptions: {
+				expiresIn: '15m',
+			},
 		}),
 		UsersModule,
 		AuthModule,

@@ -17,6 +17,7 @@ import { LoginDto } from './dto/login-dto';
 import { RequestCodeDto } from './dto/request-code.dto';
 import { SignupDto } from './dto/signup-dto';
 import { VerifyCodeDto } from './dto/verify-code.dto';
+import { RefreshDto } from './dto/refresh.dto';
 
 @Controller('api/auth')
 export class AuthController {
@@ -60,8 +61,9 @@ export class AuthController {
 	async refresh(
 		@Req() req: Request,
 		@Res({ passthrough: true }) res: Response,
+		@Body() body: RefreshDto,
 	) {
-		return this.authService.refreshTokens(req, res);
+		return this.authService.refreshTokens(req, res, body.refreshToken);
 	}
 
 	@HttpCode(HttpStatus.OK)

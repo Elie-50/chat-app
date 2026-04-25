@@ -14,7 +14,7 @@ import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { UpdatePrivateMessageDto } from './dto/update-private-chat.dto';
 
 @WebSocketGateway({
-	namespace: '/encrypted-private-chat',
+	namespace: '/private-chat',
 	cors: {
 		origin: 'http://localhost:5173',
 		methods: ['GET', 'POST'],
